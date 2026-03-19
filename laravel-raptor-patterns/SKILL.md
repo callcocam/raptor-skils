@@ -259,6 +259,7 @@ Depois da base visual pronta, implementar apenas o escopo global:
 8. Confirmações destrutivas: modal reutilizável (`ConfirmActionModal.vue`) com modo opcional de confirmação por digitação de texto aleatório/token
 9. Autorização/permissões: padronizar uso de policies para recursos e ações sensíveis
 10. Ícones: padronizar uso de Lucide (`lucide-vue-next`) para navegação e ações visuais
+11. Multi-tenant: padronizar unicidade composta com `tenant_id` para campos únicos de recurso
 
 > Não criar CRUDs de módulos de negócio neste skill.
 
@@ -306,4 +307,5 @@ Exemplos de handoff:
 - ✅ Adotar policy como padrão de autorização/permissões para recursos do sistema
 - ✅ Se não estiver claro no escopo, perguntar se deve criar policy para o model antes de implementar
 - ✅ Usar `lucide-vue-next` como biblioteca padrão de ícones
-- ✅ Sempre verificar permissão antes de exibir itens de navegação, botões e ações da interface
+- ✅ Sempre verificar permissão antes de exibir itens de navegação, links, botões e ações da interface
+- ✅ Em projetos multi-tenant, campos únicos devem usar unicidade composta com `tenant_id` (migration + validação)

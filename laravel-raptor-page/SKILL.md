@@ -396,7 +396,7 @@ Schema::create('nome_models', function (Blueprint $table) {
           ->cascadeOnDelete();
 
     $table->string('name');
-    $table->string('slug')->unique();                 // sempre incluir
+  $table->string('slug');                           // sempre incluir
     $table->enum('status', ['draft', 'published'])    // sempre incluir
           ->default('draft');
 
@@ -410,6 +410,10 @@ Schema::create('nome_models', function (Blueprint $table) {
     // Checkbox            → $table->boolean('campo')->default(false)
     // Upload              → $table->string('campo')->nullable()
 
+    // Unicidade:
+    // Multi-tenant  → $table->unique(['tenant_id', 'slug'])
+    // Single-tenant → $table->unique('slug')
+
     $table->softDeletes();                            // sempre incluir
     $table->timestamps();
 });
@@ -418,10 +422,27 @@ Schema::create('nome_models', function (Blueprint $table) {
 **Regras da migration:**
 - ❌ Nunca usar `$table->id()` — sempre `$table->ulid('id')->primary()`
 - ❌ Nunca usar `$table->foreignId()` — sempre `$table->foreignUlid()`
-- ✅ `slug` sempre presente e `unique()`
+- ✅ `slug` sempre presente
 - ✅ `status` sempre presente com `default('draft')`
 - ✅ `softDeletes()` sempre presente
 - ✅ `tenant_id` somente se o projeto for multi-tenant
+- ✅ Em multi-tenant, campos únicos devem usar índice composto com `tenant_id`
+
+**Regra de validação (Form Requests) para campos únicos:**
+
+Em projetos multi-tenant, `unique` deve considerar `tenant_id`.
+
+```php
+use Illuminate\Validation\Rule;
+
+'slug' => [
+  'required',
+  Rule::unique('nome_models', 'slug')
+    ->where(fn ($q) => $q->where('tenant_id', tenant('id'))),
+],
+```
+
+Para update, usar `->ignore($model->id)`.
 
 ---
 
@@ -724,6 +745,7 @@ Route::resource('{nome-model}', {NomeModel}Controller::class);
 - ❌ Nunca usar `$table->foreignId()` — sempre `$table->foreignUlid()`
 - ❌ Nunca criar model sem estender `AbstractModel` (que já inclui `HasUlids`, `SoftDeletes`, `HasSlug`)
 - ❌ Nunca criar migration sem `slug`, `status` e `softDeletes()`
+- ❌ Nunca criar unicidade global para campo de recurso multi-tenant sem compor com `tenant_id`
 - ❌ Nunca hardcodar labels/cores de status — sempre usar o enum (`NomeModelStatus::label()`, `::color()`)
 - ❌ Nunca implementar CRUD sem validar estratégia de autorização/permissões
 - ✅ Perguntar sobre multi-tenant **uma única vez** por conversa — reusar a resposta
@@ -742,7 +764,8 @@ Route::resource('{nome-model}', {NomeModel}Controller::class);
 - ✅ Notificações de sucesso/erro/aviso devem usar `NotificationCenter.vue`
 - ✅ Ações destrutivas devem usar `ConfirmActionModal.vue` com modo de digitação para casos críticos
 - ✅ Ícones devem usar `lucide-vue-next` (não misturar múltiplas bibliotecas sem necessidade)
-- ✅ Navegação e botões devem respeitar permissões (policy/ability) no frontend e no backend
+- ✅ Navegação, links e botões devem respeitar permissões (policy/ability) no frontend e no backend
+- ✅ Em multi-tenant, validação e índice de campos únicos devem considerar `tenant_id`
 - ✅ Todos os textos de interface devem estar em pt-BR
 - ✅ Usar policy para autorização de recursos sempre que houver operações de leitura/escrita no model
 - ✅ Se o escopo do recurso não deixar claro, perguntar se deve criar `{NomeModel}Policy`

@@ -257,7 +257,20 @@ class NomeModel extends AbstractModel
 ```php
 Schema::create('nome_models', function (Blueprint $table) {
     $table->ulid('id')->primary(); // ← sempre ulid, nunca id()
-    // ... campos
+
+    // Multi-tenant (quando aplicável)
+    // $table->foreignUlid('tenant_id')->constrained('tenants')->cascadeOnDelete();
+
+    $table->string('slug');
+
+    // ... outros campos
+
+    // Regra de unicidade:
+    // Se multi-tenant: unicidade composta por tenant
+    // $table->unique(['tenant_id', 'slug']);
+    // Se single-tenant: unicidade global
+    // $table->unique('slug');
+
     $table->softDeletes();
     $table->timestamps();
 });
@@ -270,6 +283,22 @@ Schema::create('nome_models', function (Blueprint $table) {
 $table->foreignUlid('user_id')->constrained()->cascadeOnDelete();
 $table->foreignUlid('nome_model_id')->constrained('nome_models')->cascadeOnDelete();
 ```
+
+**Validação de campos únicos (Form Request):**
+
+Quando o projeto for multi-tenant, validações `unique` devem considerar `tenant_id`.
+
+```php
+use Illuminate\Validation\Rule;
+
+'slug' => [
+    'required',
+    Rule::unique('nome_models', 'slug')
+        ->where(fn ($q) => $q->where('tenant_id', tenant('id'))),
+],
+```
+
+> Para update, sempre ignorar o registro atual com `->ignore($model->id)`.
 
 ### 5.5 — Rodar as migrations
 
@@ -342,6 +371,12 @@ TYPESENSE_PORT=8108
 # Subir dev server
 ./vendor/bin/sail npm run dev
 ```
+
+### Regras de autorização no frontend
+
+- Sempre verificar permissão antes de renderizar **links**, botões e ações na interface
+- Itens de navegação/menus devem aparecer apenas para usuários autorizados
+- A proteção deve existir no frontend (visibilidade) e no backend (policy/gate)
 
 ### Configurar o Echo no frontend (`resources/js/bootstrap.ts`)
 
@@ -492,6 +527,7 @@ Rodar os seeders:
 - [ ] Dependências JS instaladas (`sail npm install`)
 - [ ] `laravel-echo` e `pusher-js` instalados
 - [ ] `lucide-vue-next` instalado e definido como biblioteca padrão de ícones
+- [ ] Links, botões e navegação protegidos por verificação de permissão
 - [ ] Echo configurado em `resources/js/bootstrap.ts`
 - [ ] Frontend compilando (`sail npm run dev`)
 - [ ] Reverb rodando em terminal separado (`sail artisan reverb:start --debug`)
