@@ -222,6 +222,13 @@ Antes de gerar qualquer código, apresentar ao usuário um relatório resumido:
   - Será criada? sim/não
   - Estratégia: usar policy para ações index/view/create/update/delete
 
+🔒 Estratégia de unicidade por campo:
+  - slug: global / por tenant
+  - código: global / por tenant
+  - email: global / por tenant
+  - Regra: se multi-tenant, preferir unicidade composta com `tenant_id`
+  - Validar em dois pontos: migration (índice) + Form Request (`Rule::unique`)
+
 ⚠️  Componentes ui/ necessários mas AUSENTES:
    - Select.vue        ← usado no campo "categoria" do formulário
    - DatePicker.vue    ← usado no campo "data_abertura"
