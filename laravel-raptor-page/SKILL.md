@@ -1,21 +1,65 @@
 ---
 name: laravel-raptor-page
 description: >
-  Analisa um mock de design (pasta com screen.png + HTML/CSS + opcional DESIGN.md) e gera um
-  CRUD completo para um projeto Laravel com Inertia + Vue 3 + TypeScript. Use esta skill SEMPRE
-  que o usuário pedir para: "criar uma página", "criar um CRUD", "gerar tela de X", "implementar
-  módulo de X", "seguir o mock para X", "criar formulário de X", "criar listagem de X", passar
-  uma pasta de mock para análise, ou mencionar qualquer combinação de mock + geração de código.
-  A skill analisa o mock visualmente e em código, verifica o que já existe no projeto, avisa
-  sobre dependências faltando, e gera tudo na ordem correta: backend → componentes ui/ →
-  componentes base → páginas Vue.
+  Analisa mock de design (screen.png + HTML/CSS + opcional DESIGN.md) e gera páginas internas e
+  CRUDs completos em Laravel + Inertia + Vue 3 + TypeScript. Use para módulos de negócio e telas de
+  recurso (listagem, formulário, detalhe). Pressupõe base global pronta via laravel-raptor-patterns.
 ---
 
 # Laravel Raptor Page Skill
 
 ## Visão Geral
 
-Esta skill transforma um mock de design (pasta com `screen.png` + arquivo `code` HTML/CSS) em um CRUD completo, cobrindo backend e frontend, respeitando ao máximo o estilo visual do mock e reaproveitando componentes já existentes no projeto.
+Esta skill transforma um mock de design em páginas internas e CRUDs completos (backend + frontend), mantendo o estilo visual do projeto e reaproveitando componentes existentes.
+
+### Ambiente de execução
+
+- O padrão do projeto é **Laravel Sail**
+- Antes de sugerir ou executar comandos, confirmar se o projeto usa Sail
+- Se o usuário não disser o contrário, assumir **Sail como padrão**
+- Só usar `php artisan`, `composer` e `npm` diretamente se o usuário disser explicitamente que **não usa Sail**
+
+### Escopo desta skill
+
+- Páginas internas de módulos de negócio
+- CRUD completo de recursos (backend + frontend)
+- Conversão de mock para componentes e páginas de recurso
+- Listagens, formulários, filtros, paginação e ações de recurso
+
+### Fora de escopo desta skill
+
+- Bootstrap visual inicial do projeto
+- Auth, layouts globais, páginas de erro e perfil
+- Estrutura global de tenant
+
+Para itens fora de escopo, usar `laravel-raptor-patterns`.
+
+### Pré-condição obrigatória
+
+Antes de usar esta skill, a base global deve estar pronta via `laravel-raptor-patterns`:
+
+- Auth adaptado ao tema
+- Layout global (`AppLayout`/`AuthLayout`) pronto
+- Páginas de erro (`403`, `404`, `500`) prontas
+- Perfil de usuário pronto
+- Gerenciamento de tenant pronto (se multi-tenant)
+
+Se a base global não existir, interromper o CRUD e executar primeiro `laravel-raptor-patterns`.
+
+### Handoff
+
+Se durante a implementação do CRUD surgir demanda de base global (auth/layout/erro/perfil/tenant), pausar esta skill e acionar `laravel-raptor-patterns`.
+
+### Decisão rápida
+
+| Pedido do usuário | Skill correta |
+|---|---|
+| "Criar CRUD", "criar módulo", "criar tela interna" | `laravel-raptor-page` |
+| "Gerar backend + frontend de recurso" | `laravel-raptor-page` |
+| "Ajustar login", "criar AppLayout", "criar páginas de erro" | `laravel-raptor-patterns` |
+| "Configurar perfil" ou "gerenciamento global de tenant" | `laravel-raptor-patterns` |
+
+Se a base global não estiver pronta, retornar o fluxo para `laravel-raptor-patterns` antes de continuar no CRUD.
 
 ---
 
@@ -93,6 +137,7 @@ ls tema/ | grep "^{nome_base}"
 **Componentes identificados no mock:**
 - Listar cada componente visual distinto (ex: campo de busca, dropdown de filtro, botão de ação, badge de status)
 - Anotar quais parecem reutilizáveis vs. específicos desta tela
+- Mapear ícones do mock para Lucide (`lucide-vue-next`)
 
 ---
 
@@ -101,14 +146,29 @@ ls tema/ | grep "^{nome_base}"
 Antes de criar qualquer arquivo, verificar o que já existe:
 
 ```bash
+# Componentes reutilizáveis por domínio (primeira busca obrigatória)
+ls resources/js/components/ui/domain/ 2>/dev/null
+ls resources/js/components/ui/domain/NotificationCenter.vue 2>/dev/null
+ls resources/js/components/ui/domain/ConfirmActionModal.vue 2>/dev/null
+
 # Componentes ui/ disponíveis
 ls resources/js/components/ui/ 2>/dev/null
 
 # Componentes shared/ disponíveis
 ls resources/js/components/shared/ 2>/dev/null
 
+# Wrappers base de formulário/listagem
+ls resources/js/components/shared/ResourceFormShell.vue 2>/dev/null
+ls resources/js/components/shared/ResourceFormModal.vue 2>/dev/null
+ls resources/js/components/shared/ResourceListShell.vue 2>/dev/null
+
 # Layouts disponíveis
 ls resources/js/layouts/ 2>/dev/null
+
+# Base global pronta? (auth, erro, perfil)
+ls resources/js/pages/auth/ 2>/dev/null
+ls resources/js/pages/errors/ 2>/dev/null
+ls resources/js/pages/profile/ 2>/dev/null
 
 # Model já existe?
 ls app/Models/{NomeModel}.php 2>/dev/null
@@ -119,12 +179,30 @@ ls app/Http/Controllers/{NomeModel}Controller.php 2>/dev/null
 # Service já existe?
 ls app/Services/{NomeModel}Service.php 2>/dev/null
 
+# Policy já existe?
+ls app/Policies/{NomeModel}Policy.php 2>/dev/null
+
 # Páginas Vue já existem?
 ls resources/js/pages/{NomeModel}/ 2>/dev/null
 
 # Componentes específicos do recurso já existem?
 ls resources/js/components/{NomeModel}/ 2>/dev/null
 ```
+
+### Ordem obrigatória de busca de componentes reutilizáveis
+
+Antes de criar qualquer componente novo, seguir esta ordem:
+
+1. Procurar em `resources/js/components/ui/domain/` (primeira busca obrigatória)
+2. Procurar em `resources/js/components/ui/`
+3. Procurar em `resources/js/components/shared/`
+4. Procurar em `resources/js/components/{NomeModel}/`
+5. Só então criar novo componente
+
+Critério de criação:
+
+- Se o componente tende a ser usado por mais de um recurso/tela: criar reutilizável em `resources/js/components/ui/domain/` (ou `shared/` se for layout/comportamento global)
+- Se o componente for específico do recurso: criar em `resources/js/components/{NomeModel}/`
 
 ### Relatório de auditoria
 
@@ -139,6 +217,11 @@ Antes de gerar qualquer código, apresentar ao usuário um relatório resumido:
    - resources/js/components/ui/Button.vue
    - resources/js/components/ui/Input.vue
 
+🔐 Autorização (Policy):
+  - Policy existente? sim/não
+  - Será criada? sim/não
+  - Estratégia: usar policy para ações index/view/create/update/delete
+
 ⚠️  Componentes ui/ necessários mas AUSENTES:
    - Select.vue        ← usado no campo "categoria" do formulário
    - DatePicker.vue    ← usado no campo "data_abertura"
@@ -151,6 +234,7 @@ Antes de gerar qualquer código, apresentar ao usuário um relatório resumido:
    - app/Services/LojaService.php
    - app/Http/Requests/Loja/StoreLojaRequest.php
    - app/Http/Requests/Loja/UpdateLojaRequest.php
+  - app/Policies/LojaPolicy.php
 
    Frontend:
    - resources/js/components/Loja/LojaForm.vue       ← FormBase
@@ -165,6 +249,8 @@ Deseja prosseguir? Quer criar os componentes ui/ ausentes antes de continuar?
 
 > ⚠️ **Aguardar confirmação do usuário antes de gerar qualquer arquivo.**
 
+> ⚠️ Se a base global não estiver pronta, parar aqui e orientar execução da skill `laravel-raptor-patterns`.
+
 ---
 
 ## Passo 4 — Criar componentes ui/ ausentes (se confirmado)
@@ -174,6 +260,10 @@ Para cada componente `ui/` ausente identificado na auditoria, criar baseado no e
 Ver `references/ui-components.md` para os templates de cada componente primitivo.
 
 **Regra:** cada componente `ui/` deve ser genérico e reutilizável — sem lógica de negócio, sem referência ao recurso atual.
+
+**Regra adicional obrigatória:** sempre tentar reaproveitar componente existente em `resources/js/components/ui/domain/` antes de criar novo.
+
+**Internacionalização obrigatória:** textos de interface, labels, placeholders, mensagens de sucesso e erro devem estar em pt-BR.
 
 ```
 resources/js/components/ui/
@@ -187,7 +277,13 @@ resources/js/components/ui/
 
 ## Passo 5 — Gerar o Backend
 
-Sempre usando Sail (se ativo):
+Antes de qualquer comando, validar o ambiente:
+
+> "Este projeto está usando Laravel Sail? Se sim, vou usar `./vendor/bin/sail ...` em todos os comandos."
+
+Por padrão, assumir que **sim**.
+
+Comandos usando Sail:
 
 ```bash
 # Model + Migration
@@ -199,34 +295,39 @@ Sempre usando Sail (se ativo):
 # Form Requests
 ./vendor/bin/sail artisan make:request {NomeModel}/Store{NomeModel}Request
 ./vendor/bin/sail artisan make:request {NomeModel}/Update{NomeModel}Request
+
+# Policy (autorização/permissões)
+./vendor/bin/sail artisan make:policy {NomeModel}Policy --model={NomeModel}
 ```
 
 Service e Repository criados manualmente conforme padrão do `laravel-raptor-patterns`.
+
+Se houver dúvida sobre necessidade de policy para o recurso, perguntar antes de seguir:
+
+> "Vamos precisar criar policy para o model {NomeModel} (autorização/permissões)?"
 
 ---
 
 ### Model — padrão obrigatório
 
-Todo model gerado segue esta estrutura base:
+> `AbstractModel` é criado no bootstrap do projeto (`laravel-raptor-setup`, Passo 5.3). Todo model deve herdar dele — `HasFactory`, `HasUlids`, `SoftDeletes`, `HasSlug` (e `BelongsToTenant` se multi-tenant) já vêm incluídos. O pacote `callcocam/tall-sluggable` deve estar instalado.
+
+Todo model gerado segue esta estrutura:
 
 ```php
 <?php
 
 namespace App\Models;
 
-use Callcocam\Tall\Sluggable\HasSlug;           // slug automático
+use App\Enums\NomeModelStatus;
 use Callcocam\Tall\Sluggable\SlugOptions;
-use Illuminate\Database\Eloquent\Concerns\HasUlids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-class NomeModel extends Model
+class NomeModel extends AbstractModel
 {
-    use HasFactory, HasUlids, SoftDeletes, HasSlug;
+    // HasFactory, HasUlids, SoftDeletes e HasSlug já herdados do AbstractModel
 
     protected $fillable = [
-        // tenant_id (se multi-tenant)
+        // 'tenant_id', ← somente se multi-tenant e BelongsToTenant não gerencia automaticamente
         'name',
         'slug',
         'status',
@@ -234,31 +335,21 @@ class NomeModel extends Model
     ];
 
     protected $casts = [
-        'status' => NomeModelStatus::class, // enum
+        'status' => NomeModelStatus::class,
     ];
 
-    // Configuração do slug — gerado a partir do campo 'name' por padrão
-    public function getSlugOptions(): SlugOptions
-    {
-        return SlugOptions::create()
-            ->generateSlugsFrom('name')
-            ->saveSlugsTo('slug');
-    }
+    // Sobrescrever somente se o slug não vem do campo 'name':
+    // public function getSlugOptions(): SlugOptions { ... }
 
     // Relationships abaixo
 }
-```
-
-**Instalar o pacote de slug (se ainda não estiver instalado):**
-```bash
-./vendor/bin/sail composer require callcocam/tall-sluggable
 ```
 
 ---
 
 ### Enum de Status — padrão obrigatório
 
-Criar sempre em `app/Enums/`:
+> Padrão completo definido em `laravel-raptor-patterns`. Criar sempre em `app/Enums/`:
 
 ```php
 <?php
@@ -351,20 +442,102 @@ public function index(): Response
 
 ## Passo 6 — Gerar Componentes Base do Recurso
 
+Criar em duas camadas: wrappers compartilhados + componentes do recurso.
+
+### 6.1 — Wrappers compartilhados (obrigatórios)
+
+Criar/reaproveitar em `resources/js/components/shared/`:
+
+- `ResourceFormShell.vue`
+- `ResourceFormModal.vue`
+- `ResourceListShell.vue`
+
+### 6.1-A — Componentes transversais obrigatórios
+
+Criar/reaproveitar em `resources/js/components/ui/domain/`:
+
+- `NotificationCenter.vue` (toasts/alerts globais)
+- `ConfirmActionModal.vue` (confirmação de ações destrutivas)
+- `PermissionGate.vue` (controle de renderização por permissão)
+
+`ConfirmActionModal.vue` deve suportar dois modos:
+
+- Confirmação simples (botão confirmar)
+- Confirmação por digitação (usuário precisa digitar um texto aleatório/token para habilitar a ação)
+
+Exemplos de uso do modo por digitação:
+
+- Exclusão permanente
+- Reset irreversível
+- Ações de alto impacto operacional
+
+Esses wrappers centralizam comportamento repetido (submit, estados de processamento, ações, validações e paginação/filtros), para evitar duplicação nas páginas.
+
+#### `ResourceFormShell.vue`
+
+Wrapper para páginas de create/edit usando Inertia (`useForm` ou `<Form>`).
+
+- Deve receber `form`, `submit`, `isEditing`, `processing`, `errors`
+- Deve expor slots: `header`, `content`, `actions`
+- Deve encapsular botões padrão (Salvar/Cancelar), estado loading e bloco de erros gerais
+
+#### `ResourceFormModal.vue`
+
+Mesmo contrato do `ResourceFormShell`, mas em modal (create/edit rápido).
+
+- Mesmo conjunto de slots: `header`, `content`, `actions`
+- Deve suportar abrir/fechar e reset opcional do form no fechamento
+
+#### `ResourceListShell.vue`
+
+Wrapper de listagem para tabela **ou** cards.
+
+- Deve receber `items`, `filters`, `pagination`, `loading`
+- Deve centralizar filtros e paginação
+- Deve expor slots: `header`, `filters`, `content`, `pagination`, `empty`, `actions`
+- O slot `content` decide se renderiza tabela ou lista de cards
+
+> Se o projeto já possuir wrappers equivalentes, reaproveitar e apenas adaptar o contrato de props/slots.
+
+### 6.1.1 — Contrato obrigatório dos wrappers
+
+`ResourceFormShell.vue` (page)
+
+- Props mínimas: `form`, `submit`, `isEditing`, `processing`, `errors?`, `cancelHref?`, `submitLabel?`
+- Emits mínimos: `submit`, `cancel`
+- Slots obrigatórios: `header`, `content`, `actions`
+- Deve renderizar feedback de erro por campo e resumo de erros do formulário
+
+`ResourceFormModal.vue` (modal)
+
+- Props mínimas: `form`, `open`, `submit`, `isEditing`, `processing`, `errors?`, `closeOnSuccess?`
+- Emits mínimos: `update:open`, `submit`, `cancel`, `closed`
+- Slots obrigatórios: `header`, `content`, `actions`
+- Deve manter o mesmo padrão de feedback de erro do wrapper de página
+
+`ResourceListShell.vue` (index/listagem)
+
+- Props mínimas: `items`, `filters`, `loading?`, `meta?`, `links?`
+- Emits mínimos: `filter`, `paginate`, `create`, `refresh`
+- Slots obrigatórios: `header`, `filters`, `content`, `pagination`, `empty`, `actions`
+- Deve exibir estado vazio e estado de erro de carregamento com mensagens em pt-BR
+- Deve permitir gate de permissão para ações (ex: criar, editar, excluir)
+
+### 6.2 — Componente de campos do recurso
+
 Criar na pasta `resources/js/components/{NomeModel}/`:
 
-### 6.1 — `{NomeModel}Form.vue` (FormBase)
+`{NomeModel}FormFields.vue`
 
-Componente com **todos os campos do formulário**, reutilizado tanto na página Create quanto Edit:
+Componente com **todos os campos** do recurso (sem submit e sem botões globais).
 
 ```vue
 <script setup lang="ts">
 import type { {NomeModel}Form } from '@/types/{nome-model}'
 
 interface Props {
-  form: {NomeModel}Form        // useForm() do Inertia — passado pela página pai
+  form: {NomeModel}Form
   errors?: Record<string, string>
-  // dados de relacionamentos (ex: categorias para um select)
   categorias?: Categoria[]
 }
 
@@ -372,66 +545,34 @@ defineProps<Props>()
 </script>
 
 <template>
-  <!-- Estrutura fiel ao mock do formulário -->
-  <!-- Usar apenas componentes ui/ que existem no projeto -->
+  <!-- Apenas campos do recurso -->
 </template>
 ```
 
-**Regras do FormBase:**
-- Não contém lógica de submit — só renderiza campos
-- Recebe `form` (useForm do Inertia) como prop
-- Exibe `form.errors.campo` em cada campo
-- Reflete exatamente a estrutura visual do mock
+**Regras:**
 
-### 6.2 — `{NomeModel}List.vue` (ListBase)
+- Não contém lógica de submit
+- Não contém botões padrão de ação
+- Usa `form.errors` por campo
 
-Componente de listagem com tabela/cards + paginação, fiel ao mock:
+### 6.3 — Conteúdo de listagem do recurso
 
-```vue
-<script setup lang="ts">
-import type { {NomeModel}, PaginatedResponse } from '@/types/{nome-model}'
+Criar:
 
-interface Props {
-  items: PaginatedResponse<{NomeModel}>
-}
+`{NomeModel}ListContent.vue`
 
-defineProps<Props>()
-defineEmits<{
-  edit: [item: {NomeModel}]
-  delete: [item: {NomeModel}]
-}>()
-</script>
-```
+Renderiza somente o conteúdo da listagem no slot `content` do `ResourceListShell`.
 
-**Regras do ListBase:**
-- Paginação sempre incluída (links do Laravel)
-- Colunas inferidas dos campos visíveis no mock da listagem
-- Ações (editar, excluir, visualizar) conforme o mock
-- Responsivo — adaptar ao mock mobile se existir
+- Pode ser tabela ou cards conforme o mock
+- Emite ações do item (`edit`, `delete`, `show`)
 
-### 6.3 — `{NomeModel}FilterBar.vue` (FilterBar)
+### 6.4 — Filtros específicos do recurso (opcional)
 
-Componente de filtros da listagem, fiel ao mock:
+Se os filtros forem complexos, criar:
 
-```vue
-<script setup lang="ts">
-interface Props {
-  filters: {
-    search?: string
-    status?: string
-    // outros filtros visíveis no mock
-  }
-}
+`{NomeModel}FilterFields.vue`
 
-defineProps<Props>()
-defineEmits<{ filter: [filters: Props['filters']] }>()
-</script>
-```
-
-**Regras do FilterBar:**
-- Debounce no campo de busca (300ms)
-- Emite evento `filter` a cada mudança
-- Filtros inferidos dos controles visíveis no mock
+Usado dentro do slot `filters` do `ResourceListShell`.
 
 ---
 
@@ -442,8 +583,9 @@ defineEmits<{ filter: [filters: Props['filters']] }>()
 ```vue
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3'
-import {NomeModel}List from '@/components/{NomeModel}/{NomeModel}List.vue'
-import {NomeModel}FilterBar from '@/components/{NomeModel}/{NomeModel}FilterBar.vue'
+import ResourceListShell from '@/components/shared/ResourceListShell.vue'
+import {NomeModel}ListContent from '@/components/{NomeModel}/{NomeModel}ListContent.vue'
+import {NomeModel}FilterFields from '@/components/{NomeModel}/{NomeModel}FilterFields.vue'
 
 // props vindas do Controller
 const props = defineProps<{
@@ -458,6 +600,22 @@ function applyFilters(filters: Record<string, string>) {
   })
 }
 </script>
+
+<template>
+  <ResourceListShell
+    :items="props.items"
+    :filters="props.filters"
+    @filter="applyFilters"
+  >
+    <template #filters="{ filters, update }">
+      <{NomeModel}FilterFields :filters="filters" @change="update" />
+    </template>
+
+    <template #content>
+      <{NomeModel}ListContent :items="props.items" />
+    </template>
+  </ResourceListShell>
+</template>
 ```
 
 ### `Form.vue` — Create + Edit unificado
@@ -465,7 +623,8 @@ function applyFilters(filters: Record<string, string>) {
 ```vue
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3'
-import {NomeModel}Form from '@/components/{NomeModel}/{NomeModel}Form.vue'
+import ResourceFormShell from '@/components/shared/ResourceFormShell.vue'
+import {NomeModel}FormFields from '@/components/{NomeModel}/{NomeModel}FormFields.vue'
 
 const props = defineProps<{ {nomeModel}?: {NomeModel} }>()
 const isEditing = computed(() => !!props.{nomeModel}?.id)
@@ -480,7 +639,34 @@ function submit() {
     : form.post(route('{nome-model}.store'))
 }
 </script>
+
+<template>
+  <ResourceFormShell
+    :form="form"
+    :is-editing="isEditing"
+    :submit="submit"
+    :processing="form.processing"
+  >
+    <template #header>
+      <!-- Titulo/Subtitulo -->
+    </template>
+
+    <template #content>
+      <{NomeModel}FormFields :form="form" :errors="form.errors" />
+    </template>
+
+    <template #actions>
+      <!-- Ações extras opcionais -->
+    </template>
+  </ResourceFormShell>
+</template>
 ```
+
+> Para fluxo em modal, usar `ResourceFormModal.vue` com os mesmos slots (`header`, `content`, `actions`).
+
+> Para ações destrutivas (delete/archive/reset), usar `ConfirmActionModal.vue`; para operações críticas, habilitar modo de confirmação por digitação.
+
+> Botões, ações e links de navegação interna devem ser renderizados com checagem de permissão (policy/ability), preferencialmente via `PermissionGate.vue`.
 
 ### `Show.vue` — Somente se o mock tiver tela de detalhe
 
@@ -498,20 +684,25 @@ Route::resource('{nome-model}', {NomeModel}Controller::class);
 ## Ordem de entrega
 
 ```
-1. Relatório de auditoria → aguardar confirmação
-2. Componentes ui/ ausentes (se aprovados)
-3. app/Enums/{NomeModel}Status.php
-4. Migration + Model (com HasUlids, HasSlug, SoftDeletes, enum cast, tenant_id se multi-tenant)
-5. Service (+ Repository se padrão C)
-6. Controller + Form Requests
-7. Tipos TypeScript (resources/js/types/{nome-model}.ts)
-8. {NomeModel}Form.vue    ← inclui campo status com Select + campo slug (readonly/auto)
-9. {NomeModel}List.vue    ← inclui coluna status com Badge usando enum.color()
-10. {NomeModel}FilterBar.vue ← inclui filtro por status
-11. Pages/Index.vue
-12. Pages/Form.vue
-13. Pages/Show.vue (se aplicável)
-14. Rota no web.php
+1. Validar se a base global já está pronta
+2. Relatório de auditoria → aguardar confirmação
+3. Componentes ui/ ausentes (se aprovados)
+4. app/Enums/{NomeModel}Status.php
+5. Migration + Model (com HasUlids, HasSlug, SoftDeletes, enum cast, tenant_id se multi-tenant)
+6. Service (+ Repository se padrão C)
+7. Controller + Form Requests
+8. Tipos TypeScript (resources/js/types/{nome-model}.ts)
+9. Buscar e reaproveitar componentes em `ui/domain` → `ui` → `shared` → `{NomeModel}`
+10. shared/ResourceFormShell.vue e shared/ResourceListShell.vue (e modal, se necessário)
+11. Validar contrato mínimo de props/emits/slots dos wrappers
+12. Garantir `NotificationCenter.vue` e `ConfirmActionModal.vue` reutilizáveis (ou reaproveitar existentes)
+13. {NomeModel}FormFields.vue    ← inclui campo status com Select + campo slug (readonly/auto)
+14. {NomeModel}ListContent.vue    ← tabela ou cards com ações
+15. {NomeModel}FilterFields.vue   ← filtros específicos (se necessário)
+16. Pages/Index.vue (com ResourceListShell)
+17. Pages/Form.vue (com ResourceFormShell)
+18. Pages/Show.vue (se aplicável)
+19. Rota no web.php
 ```
 
 ---
@@ -519,22 +710,45 @@ Route::resource('{nome-model}', {NomeModel}Controller::class);
 ## Regras Gerais
 
 - ❌ Nunca gerar código sem antes apresentar o relatório de auditoria
+- ❌ Nunca iniciar CRUD se a base global ainda não estiver pronta
 - ❌ Nunca criar componentes `ui/` sem confirmar com o usuário
 - ❌ Nunca recriar componentes que já existem — sempre reaproveitar
+- ❌ Nunca criar componente novo sem procurar antes em `resources/js/components/ui/domain/`
+- ❌ Nunca duplicar lógica de submit/ações em cada página de create/edit
+- ❌ Nunca implementar listagem sem wrapper com filtros e paginação centralizados
+- ❌ Nunca deixar mensagens de UI em inglês quando o projeto está em pt-BR
+- ❌ Nunca executar ação destrutiva sem confirmação explícita
+- ❌ Nunca exibir botão/ação/link de navegação sem validar permissão
+- ❌ Nunca usar `php artisan`, `composer` ou `npm` diretamente sem confirmar que o projeto não usa Sail
 - ❌ Nunca usar `$table->id()` — sempre `$table->ulid('id')->primary()`
 - ❌ Nunca usar `$table->foreignId()` — sempre `$table->foreignUlid()`
-- ❌ Nunca criar model sem `HasUlids`, `SoftDeletes` e `HasSlug`
+- ❌ Nunca criar model sem estender `AbstractModel` (que já inclui `HasUlids`, `SoftDeletes`, `HasSlug`)
 - ❌ Nunca criar migration sem `slug`, `status` e `softDeletes()`
 - ❌ Nunca hardcodar labels/cores de status — sempre usar o enum (`NomeModelStatus::label()`, `::color()`)
+- ❌ Nunca implementar CRUD sem validar estratégia de autorização/permissões
 - ✅ Perguntar sobre multi-tenant **uma única vez** por conversa — reusar a resposta
 - ✅ Incluir `tenant_id` somente se o projeto for multi-tenant
+- ✅ `BelongsToTenant` já incluído no `AbstractModel` se projeto for multi-tenant
 - ✅ `status` sempre começa como `draft` por padrão
 - ✅ `slug` sempre gerado automaticamente via `callcocam/tall-sluggable`
 - ✅ Fidelidade visual ao mock tem prioridade sobre convenções genéricas
 - ✅ Sempre TypeScript — nunca `.vue` sem `lang="ts"`
 - ✅ Sempre `<script setup>` — nunca Options API
-- ✅ Formulários sempre com `useForm` do Inertia
+- ✅ Formulários sempre com Inertia (`useForm` ou `<Form>`) via wrapper compartilhado
+- ✅ Formulário deve usar slots `header`, `content`, `actions` (page e modal)
+- ✅ Listagem deve usar wrapper compartilhado com filtros + paginação e slot de conteúdo (tabela/cards)
+- ✅ Se componente puder ser usado em mais de um recurso, criar como reutilizável em `resources/js/components/ui/domain/`
+- ✅ Feedback de erro deve ser exibido no campo e em resumo de formulário quando aplicável
+- ✅ Notificações de sucesso/erro/aviso devem usar `NotificationCenter.vue`
+- ✅ Ações destrutivas devem usar `ConfirmActionModal.vue` com modo de digitação para casos críticos
+- ✅ Ícones devem usar `lucide-vue-next` (não misturar múltiplas bibliotecas sem necessidade)
+- ✅ Navegação e botões devem respeitar permissões (policy/ability) no frontend e no backend
+- ✅ Todos os textos de interface devem estar em pt-BR
+- ✅ Usar policy para autorização de recursos sempre que houver operações de leitura/escrita no model
+- ✅ Se o escopo do recurso não deixar claro, perguntar se deve criar `{NomeModel}Policy`
+- ✅ Assumir Sail como padrão até que o usuário informe o contrário
 - ✅ Comandos Artisan sempre com `./vendor/bin/sail` (se Sail ativo)
+- ✅ Esta skill é para páginas internas e CRUDs; auth/layout/erros/perfil/tenant ficam na `laravel-raptor-patterns`
 
 ---
 

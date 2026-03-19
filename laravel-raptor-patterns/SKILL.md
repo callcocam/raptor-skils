@@ -1,28 +1,59 @@
 ---
 name: laravel-raptor-patterns
 description: >
-  Define e aplica padrões de criação de código para projetos Laravel: Models, Controllers, Services,
-  Repositories, Form Requests, e componentes Vue/TypeScript frontend. Use esta skill SEMPRE que o
-  usuário pedir para: criar um model, controller, service, repository, componente Vue, página Inertia,
-  ou qualquer artefato de código num projeto Laravel. Também acione quando mencionar "criar CRUD",
-  "gerar recurso", "novo módulo", "padrão de código", "seguir o tema", "seguir o mock", "pasta tema",
-  "configurar layout", "criar sidebar", "telas de auth", "bootstrap do projeto", "dashboard",
-  "componentes base", ou qualquer pedido de scaffolding. Em projetos novos, SEMPRE executar o
-  Passo 0 (bootstrap visual) antes de qualquer tela de negócio: verificar /tema, definir estratégia
-  de componentes, adaptar auth e criar layout principal. Nunca criar telas de negócio sem a base
-  visual estabelecida.
+  Define padrões da base global do projeto Laravel: identidade visual, componentes base, auth,
+  layouts, páginas de erro, perfil do usuário e gerenciamento de tenant. Use para bootstrap visual
+  inicial e estrutura global do app. Não usar para CRUDs ou páginas internas de módulos de negócio
+  (usar laravel-raptor-page).
 ---
 
 # Laravel Patterns Skill
 
 ## Visão Geral
 
-Este skill define os padrões de criação de código para projetos Laravel. Antes de gerar qualquer arquivo, é preciso identificar:
+Este skill cobre somente a base global do projeto.
 
-1. **O padrão de arquitetura backend** do projeto
-2. **O padrão visual/tema frontend** — lendo a pasta `/tema` na raiz do projeto
+Todo projeto novo passa por um **bootstrap visual obrigatório** antes de qualquer tela de negócio (ver Passo 0).
 
-Todo projeto novo passa por um **bootstrap visual obrigatório** antes de qualquer tela de negócio. Ver Passo 0.
+### Ambiente de execução
+
+- O padrão do projeto é **Laravel Sail**
+- Antes de sugerir ou executar comandos, confirmar se o projeto usa Sail
+- Se o usuário não disser o contrário, assumir **Sail como padrão**
+- Só usar `php artisan`, `composer` e `npm` diretamente se o usuário disser explicitamente que **não usa Sail**
+
+### Escopo desta skill
+
+- Base visual (tokens, paleta, tipografia, componentes ui)
+- Layouts globais (`AppLayout`, `AuthLayout`, navegação)
+- Telas de autenticação
+- Páginas de erro (`403`, `404`, `500`)
+- Perfil de usuário (dados básicos, senha, preferências)
+- Gerenciamento de tenant (somente contexto global de tenant)
+
+### Fora de escopo desta skill
+
+- CRUDs de domínio (Lojas, Produtos, Pedidos, etc.)
+- Módulos internos de negócio
+- Fluxos específicos de um recurso
+
+Para itens fora de escopo, usar `laravel-raptor-page`.
+
+### Handoff
+
+Quando o usuário pedir criação de telas internas ou CRUDs de recurso, encerrar esta skill e seguir com `laravel-raptor-page`.
+
+### Decisão rápida
+
+| Pedido do usuário | Skill correta |
+|---|---|
+| "Configurar auth", "ajustar layout", "criar página 403/404/500" | `laravel-raptor-patterns` |
+| "Criar perfil do usuário" ou "organizar tenant ativo" | `laravel-raptor-patterns` |
+| "Criar CRUD de lojas/produtos/pedidos" | `laravel-raptor-page` |
+| "Gerar listagem + formulário de recurso" | `laravel-raptor-page` |
+| "Novo módulo interno seguindo mock" | `laravel-raptor-page` |
+
+Se houver dúvida: primeiro preparar base global com `laravel-raptor-patterns`, depois construir módulo interno com `laravel-raptor-page`.
 
 ---
 
@@ -64,6 +95,10 @@ Ler a pasta `/tema` (ver Passo 2) e decidir a estratégia com base no que encont
 ```
 resources/js/components/
 ├── ui/                  ← primitivos base (Button, Input, Card, Badge, etc.)
+│   ├── domain/           ← componentes reutilizáveis de domínio/transversais
+│   │   ├── NotificationCenter.vue
+│   │   ├── ConfirmActionModal.vue
+│   │   └── index.ts
 │   ├── Button.vue
 │   ├── Input.vue
 │   ├── Card.vue
@@ -81,11 +116,23 @@ resources/js/components/
 │   ├── DataTable.vue
 │   ├── Pagination.vue
 │   ├── EmptyState.vue
-│   └── ConfirmDialog.vue
+│   ├── ConfirmDialog.vue
+│   └── FormErrorSummary.vue
 └── index.ts             ← exporta tudo
 ```
 
 > Criar os primitivos em `ui/` **antes** de qualquer página. Eles são a base de tudo.
+
+#### Ordem obrigatória de busca/reuso de componentes
+
+Antes de criar componente novo, sempre procurar nesta ordem:
+
+1. `resources/js/components/ui/domain/`
+2. `resources/js/components/ui/`
+3. `resources/js/components/shared/`
+4. Criar componente novo (somente se não houver equivalente)
+
+Se o componente puder ser usado em múltiplas telas, criar em `ui/domain`.
 
 ---
 
@@ -174,21 +221,7 @@ Só depois do bootstrap concluído → iniciar telas de negócio.
 
 ---
 
-## Passo 1 — Identificar o padrão de arquitetura
-
-Se não foi informado anteriormente, perguntar:
-
-> "Qual padrão de camadas você quer usar neste projeto?"
-
-- **A) Model + Controller** — Simples, sem camadas extras. Bom para CRUDs pequenos.
-- **B) Model + Service + Controller** — Service encapsula a lógica de negócio. Recomendado para a maioria dos projetos.
-- **C) Model + Service + Repository + Controller** — Desacopla banco da lógica. Bom para projetos grandes ou com múltiplas fontes de dados.
-
-Guardar a escolha como o **padrão do projeto** e aplicar consistentemente.
-
----
-
-## Passo 2 — Ler a pasta `/tema` e extrair o padrão visual
+## Passo 1 — Ler a pasta `/tema` e extrair o padrão visual global
 
 A pasta `/tema` na raiz do projeto contém os mocks de design. Cada subpasta segue o padrão:
 
@@ -196,291 +229,81 @@ A pasta `/tema` na raiz do projeto contém os mocks de design. Cada subpasta seg
 {nome_da_tela}_{device}_{modo}
 ```
 
-Exemplos:
-```
-tema/
-├── 403_sem_permissao_desktop_light/
-│   ├── screen.png    ← screenshot da tela
-│   ├── code          ← HTML/CSS do mock (sem extensão ou .html)
-│   └── DESIGN.md     ← notas de design (pode não existir)
-├── 403_sem_permissao_desktop_dark/
-├── gerenciamento_de_lojas_desktop_light/
-├── gerenciamento_de_lojas_mobile_dark/
-└── ...
-```
+### Prioridade de leitura
 
-### Como ler os mocks
+- Sempre preferir `desktop_light` como referência principal
+- Usar `dark` para validar variáveis de tema
+- Usar `mobile` para comportamento responsivo
 
-1. **Listar as pastas disponíveis:**
-   ```bash
-   ls tema/
-   ```
+### O que documentar internamente
 
-2. **Para cada tela relevante, ler:**
-   - O arquivo `code` (HTML/CSS) — extrair estrutura, classes, variáveis CSS, padrão de grid/flex
-   - O `screen.png` — referenciar visualmente para entender layout, espaçamentos e hierarquia
-   - O `DESIGN.md` se existir — tem anotações importantes sobre decisões de design
-
-3. **Extrair e documentar internamente:**
-   - Paleta de cores (variáveis CSS ou classes Tailwind usadas)
-   - Padrão tipográfico (tamanhos, pesos, famílias)
-   - Espaçamentos recorrentes (padding, gap, margin)
-   - Padrão de cards, tabelas, formulários, botões
-   - Comportamento em dark/light mode
-   - Diferenças entre desktop/mobile/tablet
-
-### Prioridade dos mocks
-- Sempre preferir o mock `desktop_light` como referência principal
-- Usar `dark` para entender variáveis de tema
-- Usar `mobile` para entender responsividade
-
-### Sem pasta `/tema`
-Se a pasta não existir, perguntar ao usuário:
-- Quer criar do zero com **shadcn-vue**?
-- Tem algum design para referenciar?
+- Paleta de cores e tokens
+- Tipografia e escala
+- Espaçamentos recorrentes
+- Componentes visuais globais
+- Padrões de navegação
 
 ---
 
-## Passo 3 — Gerar os arquivos
+## Passo 2 — Implementar páginas e fluxos globais
 
-### Comandos Artisan (sempre com Sail quando aplicável)
+Depois da base visual pronta, implementar apenas o escopo global:
 
-```bash
-# Model + Migration
-./vendor/bin/sail artisan make:model NomeModel -m
+1. Auth: `Login`, `Register`, `ForgotPassword`, `ResetPassword`, `ConfirmPassword`, `VerifyEmail`
+2. Layouts: `AppLayout`, `AuthLayout`, `Sidebar`, `Topbar`, navegação mobile
+3. Páginas de erro: `403`, `404`, `500`
+4. Perfil do usuário: dados básicos, atualização de senha e preferências
+5. Gerenciamento de tenant (somente se multi-tenant): troca de tenant ativo e contexto atual
+6. Feedbacks globais: mensagens de erro padronizadas por campo e resumo de erros por formulário
+7. Notificações globais: componente de notificação reutilizável (`NotificationCenter.vue`)
+8. Confirmações destrutivas: modal reutilizável (`ConfirmActionModal.vue`) com modo opcional de confirmação por digitação de texto aleatório/token
+9. Autorização/permissões: padronizar uso de policies para recursos e ações sensíveis
+10. Ícones: padronizar uso de Lucide (`lucide-vue-next`) para navegação e ações visuais
 
-# Controller (Resource)
-./vendor/bin/sail artisan make:controller NomeController --resource --model=NomeModel
-
-# Form Request (validação)
-./vendor/bin/sail artisan make:request StoreNomeRequest
-./vendor/bin/sail artisan make:request UpdateNomeRequest
-
-# Policy
-./vendor/bin/sail artisan make:policy NomePolicy --model=NomeModel
-```
-
-> Services e Repositories **não têm comando Artisan nativo** — criar manualmente conforme padrões abaixo.
+> Não criar CRUDs de módulos de negócio neste skill.
 
 ---
 
-## Padrões de Código por Camada
+## Passo 3 — Critério de pronto da base
 
-### Model
+Considerar a base global pronta quando todos os itens abaixo estiverem concluídos:
 
-```php
-// app/Models/NomeModel.php
-<?php
-
-namespace App\Models;
-
-use App\Enums\NomeModelStatus;
-use Callcocam\Tall\Sluggable\HasSlug;
-use Callcocam\Tall\Sluggable\SlugOptions;
-use Illuminate\Database\Eloquent\Concerns\HasUlids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
-class NomeModel extends Model
-{
-    use HasFactory, HasUlids, SoftDeletes, HasSlug;
-
-    protected $fillable = [
-        // 'tenant_id',  ← incluir somente se projeto multi-tenant
-        'name',
-        'slug',
-        'status',
-        // demais campos
-    ];
-
-    protected $casts = [
-        'status' => NomeModelStatus::class,
-    ];
-
-    public function getSlugOptions(): SlugOptions
-    {
-        return SlugOptions::create()
-            ->generateSlugsFrom('name')
-            ->saveSlugsTo('slug');
-    }
-
-    // Relationships abaixo
-}
-```
-
-**Enum de status — criar sempre em `app/Enums/`:**
-
-```php
-<?php
-
-namespace App\Enums;
-
-enum NomeModelStatus: string
-{
-    case Draft     = 'draft';
-    case Published = 'published';
-
-    public function label(): string
-    {
-        return match($this) {
-            self::Draft     => 'Rascunho',
-            self::Published => 'Publicado',
-        };
-    }
-
-    public function color(): string
-    {
-        return match($this) {
-            self::Draft     => 'warning',
-            self::Published => 'success',
-        };
-    }
-}
-```
-
-**Migration correspondente:**
-
-```php
-Schema::create('nome_models', function (Blueprint $table) {
-    $table->ulid('id')->primary();
-
-    // $table->foreignUlid('tenant_id')->constrained('tenants')->cascadeOnDelete();
-    // ↑ incluir somente se projeto multi-tenant
-
-    $table->string('name');
-    $table->string('slug')->unique();
-    $table->enum('status', ['draft', 'published'])->default('draft');
-
-    // demais campos inferidos do contexto
-
-    $table->softDeletes();
-    $table->timestamps();
-});
-```
-
-**Regras absolutas de model/migration:**
-- ❌ Nunca `$table->id()` → sempre `$table->ulid('id')->primary()`
-- ❌ Nunca `$table->foreignId()` → sempre `$table->foreignUlid()`
-- ❌ Nunca model sem `HasUlids`, `SoftDeletes`, `HasSlug`
-- ❌ Nunca migration sem `slug`, `status` e `softDeletes()`
-- ✅ `tenant_id` somente se o projeto for multi-tenant (perguntar uma vez por conversa)
-- ✅ Status sempre usa enum tipado, nunca string hardcoded
-
-### Service
-
-```php
-// app/Services/NomeService.php
-namespace App\Services;
-
-class NomeService
-{
-    public function __construct(
-        protected readonly NomeRepository $repository // só no padrão C
-    ) {}
-
-    public function listar(array $filtros = []): Collection { ... }
-    public function criar(array $dados): NomeModel { ... }
-    public function atualizar(NomeModel $model, array $dados): NomeModel { ... }
-    public function deletar(NomeModel $model): void { ... }
-}
-```
-
-### Repository (só padrão C)
-
-```php
-// app/Repositories/NomeRepository.php
-namespace App\Repositories;
-
-class NomeRepository
-{
-    public function todos(array $filtros = []): Collection { ... }
-    public function encontrar(int $id): NomeModel { ... }
-    public function criar(array $dados): NomeModel { ... }
-    public function atualizar(NomeModel $model, array $dados): NomeModel { ... }
-    public function deletar(NomeModel $model): void { ... }
-}
-```
-
-### Controller
-
-```php
-// app/Http/Controllers/NomeController.php
-class NomeController extends Controller
-{
-    public function __construct(
-        protected readonly NomeService $service
-    ) {}
-
-    public function index(): Response { ... }
-    public function store(StoreNomeRequest $request): RedirectResponse { ... }
-    public function update(UpdateNomeRequest $request, NomeModel $model): RedirectResponse { ... }
-    public function destroy(NomeModel $model): RedirectResponse { ... }
-}
-```
+- [ ] Sistema de componentes base definido e consistente
+- [ ] Auth adaptado ao tema
+- [ ] Layout principal funcional em desktop e mobile
+- [ ] Páginas de erro implementadas
+- [ ] Perfil do usuário implementado
+- [ ] Gerenciamento de tenant implementado (se aplicável)
 
 ---
 
-## Estrutura de Pastas
+## Handoff para a skill de páginas
 
-```
-app/
-├── Http/
-│   ├── Controllers/
-│   │   └── NomeController.php
-│   └── Requests/
-│       ├── StoreNomeRequest.php
-│       └── UpdateNomeRequest.php
-├── Models/
-│   └── NomeModel.php
-├── Services/          ← criar pasta manualmente se não existir
-│   └── NomeService.php
-└── Repositories/      ← só padrão C — criar pasta manualmente se não existir
-    └── NomeRepository.php
-```
+Quando a solicitação envolver telas internas de negócio, módulos e CRUDs, usar a skill **laravel-raptor-page**.
 
----
+Exemplos de handoff:
 
-## Inertia + Vue 3 (Frontend)
-
-Para cada recurso, criar a página Vue correspondente:
-
-```
-resources/js/pages/
-└── NomeModel/
-    ├── Index.vue     ← listagem
-    ├── Create.vue    ← formulário de criação
-    ├── Edit.vue      ← formulário de edição
-    └── Show.vue      ← visualização (se necessário)
-```
-
-### Fluxo obrigatório antes de criar qualquer componente Vue:
-
-1. Verificar `tema/` na raiz — listar as pastas
-2. Identificar qual mock corresponde à tela que está sendo criada (pelo nome da pasta)
-3. Ler o arquivo `code` do mock relevante
-4. Visualizar o `screen.png` para entender o layout
-5. Ler o `DESIGN.md` se existir
-6. Converter o HTML/CSS do mock para Vue 3 + TypeScript + Tailwind, preservando a identidade visual
-
-Ver `references/frontend-patterns.md` para padrões de componentes Vue e conversão HTML → Vue.
-
----
-
-## Rota Resource
-
-```php
-// routes/web.php
-Route::resource('nome-models', NomeController::class);
-```
+- Cadastro de lojas, produtos, pedidos, contratos
+- Listagens internas com filtros e paginação
+- Formulários de create/edit/show de recursos
+- Backend de recurso (Model, Requests, Service, Controller, rotas)
 
 ---
 
 ## Regras Gerais
 
-- ❌ **Nunca criar camadas que não fazem parte do padrão escolhido** para o projeto
-- ❌ **Nunca rodar `php artisan`** diretamente — sempre `./vendor/bin/sail artisan` (se Sail estiver ativo)
-- ✅ **Sempre usar injeção de dependência** no construtor do Controller e Service
-- ✅ **Sempre criar Form Requests** separados para `store` e `update` (nunca validar no Controller)
-- ✅ **Sempre seguir o padrão visual** definido pelos mocks ou pelo sistema de design do projeto
-- ✅ **Manter consistência** — se o projeto já tem um padrão estabelecido, identificar e seguir ele
+- ❌ Nunca criar CRUD de domínio nesta skill
+- ❌ Nunca misturar bootstrap global com implementação de módulo interno no mesmo passo
+- ❌ Nunca criar componente novo sem procurar antes em `resources/js/components/ui/domain/`
+- ❌ Nunca usar `php artisan`, `composer` ou `npm` diretamente sem confirmar que o projeto não usa Sail
+- ✅ Sempre estabelecer a base visual global antes de qualquer tela de negócio
+- ✅ Sempre manter consistência de tema entre auth, layout, erros, perfil e tenant
+- ✅ Assumir Sail como padrão até que o usuário informe o contrário
+- ✅ Textos e mensagens de interface devem estar em pt-BR
+- ✅ Toda ação com erro deve exibir feedback visível (campo + resumo quando aplicável)
+- ✅ Toda ação destrutiva deve passar por confirmação; em operações críticas, exigir digitação de texto aleatório/token
+- ✅ Notificações de sucesso/erro/aviso devem usar componente reutilizável global
+- ✅ Adotar policy como padrão de autorização/permissões para recursos do sistema
+- ✅ Se não estiver claro no escopo, perguntar se deve criar policy para o model antes de implementar
+- ✅ Usar `lucide-vue-next` como biblioteca padrão de ícones
+- ✅ Sempre verificar permissão antes de exibir itens de navegação, botões e ações da interface

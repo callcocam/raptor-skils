@@ -167,27 +167,88 @@ class User extends Authenticatable
 }
 ```
 
-### 5.3 — Padrão para todos os novos Models
+### 5.3 — Criar o AbstractModel
 
-**Todo model criado no projeto deve seguir este padrão:**
+Todo projeto cria um `AbstractModel` base que **todas as models herdam**. Isso centraliza traits obrigatórias e evita repetição.
+
+Criar manualmente `app/Models/AbstractModel.php`:
 
 ```php
 <?php
 
 namespace App\Models;
 
+use Callcocam\Tall\Sluggable\HasSlug;
+use Callcocam\Tall\Sluggable\SlugOptions;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class NomeModel extends Model
+abstract class AbstractModel extends Model
 {
-    use HasFactory, HasUlids, SoftDeletes;
+    use HasFactory, HasUlids, SoftDeletes, HasSlug;
+
+    // Slug gerado a partir de 'name' por padrão — sobrescreva nos models com outro campo-fonte
+    public function getSlugOptions(): SlugOptions
+    {
+        return SlugOptions::create()
+            ->generateSlugsFrom('name')
+            ->saveSlugsTo('slug');
+    }
+}
+```
+
+**Se o projeto for multi-tenant**, adicionar a trait de isolamento do tenant ao `AbstractModel`:
+
+```php
+use App\Traits\BelongsToTenant; // ou a trait do pacote de tenancy em uso
+
+abstract class AbstractModel extends Model
+{
+    use HasFactory, HasUlids, SoftDeletes, HasSlug, BelongsToTenant;
+    // ...
+}
+```
+
+> ✅ Instalar antes de criar o `AbstractModel`:
+> ```bash
+> ./vendor/bin/sail composer require callcocam/tall-sluggable
+> ```
+
+---
+
+### 5.4 — Padrão para todos os novos Models
+
+**Todo model criado no projeto deve estender `AbstractModel`:**
+
+```php
+<?php
+
+namespace App\Models;
+
+use App\Enums\NomeModelStatus;
+use Callcocam\Tall\Sluggable\SlugOptions;
+
+class NomeModel extends AbstractModel
+{
+    // HasFactory, HasUlids, SoftDeletes e HasSlug já herdados do AbstractModel
+    // BelongsToTenant já herdado (se multi-tenant)
 
     protected $fillable = [
-        // campos explícitos
+        // 'tenant_id', ← apenas se multi-tenant e BelongsToTenant não gerencia automaticamente
+        'name',
+        'slug',
+        'status',
+        // campos adicionais
     ];
+
+    protected $casts = [
+        'status' => NomeModelStatus::class,
+    ];
+
+    // Sobrescrever somente se o slug não vem do campo 'name':
+    // public function getSlugOptions(): SlugOptions { ... }
 }
 ```
 
@@ -210,7 +271,7 @@ $table->foreignUlid('user_id')->constrained()->cascadeOnDelete();
 $table->foreignUlid('nome_model_id')->constrained('nome_models')->cascadeOnDelete();
 ```
 
-### 5.4 — Rodar as migrations
+### 5.5 — Rodar as migrations
 
 ```bash
 ./vendor/bin/sail artisan migrate
@@ -275,6 +336,9 @@ TYPESENSE_PORT=8108
 # Echo + Pusher (cliente para o Reverb)
 ./vendor/bin/sail npm install laravel-echo pusher-js
 
+# Ícones (padrão do projeto)
+./vendor/bin/sail npm install lucide-vue-next
+
 # Subir dev server
 ./vendor/bin/sail npm run dev
 ```
@@ -296,6 +360,98 @@ window.Echo = new Echo({
   forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https',
   enabledTransports: ['ws', 'wss'],
 })
+```
+
+---
+
+## Passo 8 — Seeders iniciais (Tenant + User)
+
+Criar seeders para popular o banco com dados iniciais obrigatórios após as migrations.
+
+```bash
+./vendor/bin/sail artisan make:seeder TenantSeeder
+./vendor/bin/sail artisan make:seeder UserSeeder
+```
+
+### TenantSeeder
+
+> Somente se o projeto for **multi-tenant** — cria o tenant padrão:
+
+```php
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Tenant;
+use Illuminate\Database\Seeder;
+
+class TenantSeeder extends Seeder
+{
+    public function run(): void
+    {
+        Tenant::firstOrCreate(
+            ['slug' => 'default'],
+            [
+                'name'   => 'Tenant Padrão',
+                'status' => 'published',
+            ]
+        );
+    }
+}
+```
+
+### UserSeeder
+
+Cria o usuário administrador inicial:
+
+```php
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Tenant;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+
+class UserSeeder extends Seeder
+{
+    public function run(): void
+    {
+        // Se multi-tenant: buscar o tenant padrão
+        // $tenant = Tenant::where('slug', 'default')->first();
+
+        User::firstOrCreate(
+            ['email' => 'admin@admin.com'],
+            [
+                // 'tenant_id' => $tenant?->id, ← descomentar se multi-tenant
+                'name'     => 'Administrador',
+                'password' => Hash::make('password'),
+            ]
+        );
+    }
+}
+```
+
+### DatabaseSeeder
+
+Registrar os seeders na ordem correta:
+
+```php
+// database/seeders/DatabaseSeeder.php
+public function run(): void
+{
+    $this->call([
+        TenantSeeder::class, // somente se multi-tenant
+        UserSeeder::class,
+    ]);
+}
+```
+
+Rodar os seeders:
+
+```bash
+./vendor/bin/sail artisan db:seed
 ```
 
 ---
@@ -325,11 +481,17 @@ window.Echo = new Echo({
 - [ ] Reverb instalado (`sail artisan install:broadcasting`)
 - [ ] Migration de `users` e `sessions` adaptadas para `ulid('id')->primary()`
 - [ ] Model `User` com trait `HasUlids`
+- [ ] `callcocam/tall-sluggable` instalado (`sail composer require callcocam/tall-sluggable`)
+- [ ] `app/Models/AbstractModel.php` criado (com `HasUlids`, `SoftDeletes`, `HasSlug`)
+- [ ] `BelongsToTenant` adicionado ao `AbstractModel` (somente se multi-tenant)
 - [ ] `.env` configurado — incluindo variáveis do Reverb e `BROADCAST_CONNECTION=reverb`
 - [ ] `sail artisan key:generate` executado
 - [ ] Migrations rodadas (`sail artisan migrate`)
+- [ ] Seeders criados (`TenantSeeder` se multi-tenant + `UserSeeder`)
+- [ ] Seeders rodados (`sail artisan db:seed`)
 - [ ] Dependências JS instaladas (`sail npm install`)
 - [ ] `laravel-echo` e `pusher-js` instalados
+- [ ] `lucide-vue-next` instalado e definido como biblioteca padrão de ícones
 - [ ] Echo configurado em `resources/js/bootstrap.ts`
 - [ ] Frontend compilando (`sail npm run dev`)
 - [ ] Reverb rodando em terminal separado (`sail artisan reverb:start --debug`)
