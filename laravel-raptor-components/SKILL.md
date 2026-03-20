@@ -40,6 +40,21 @@ algumas informações:
 ```
 
 Após receber as respostas:
+- **Antes de qualquer geração**, verificar se o componente e o composable já existem:
+  ```
+  # Verificar componente
+  find {pasta_informada} -name "NomeDoComponente.vue" 2>/dev/null
+
+  # Verificar composable
+  find {pasta_composables} -name "useNomeDoComponente.ts" 2>/dev/null
+
+  # Verificar useFieldWatcher especificamente
+  find {pasta_composables} -name "useFieldWatcher.ts" 2>/dev/null
+  ```
+  - **Se já existe** → leia o arquivo, mostre ao usuário o que foi encontrado e pergunte:
+    *"Encontrei `NomeDoComponente.vue` em `{caminho}`. Deseja que eu atualize o existente
+    ou crie uma nova versão?"*
+  - **Se não existe** → prossiga normalmente para a geração
 - Se o usuário fornecer referência → analise na **Fase 1b**
 - Se houver pasta de componentes → leia 2-3 arquivos existentes na **Fase 1c** para capturar o padrão
 - Só então vá para a **Fase 2**
@@ -64,7 +79,636 @@ um time de design system experiente, não por um gerador genérico.
 
 ---
 
-## Fase 1 — Coleta e análise
+## Anatomia Universal — Aplicável a TODOS os componentes
+
+**Todo componente gerado por esta skill, independente do tipo, deve suportar estas capacidades.**
+Não são opcionais — são o padrão mínimo que eleva o componente ao nível profissional.
+Implemente todas que fizerem sentido para o tipo em questão; documente explicitamente as que
+foram omitidas e o motivo.
+
+---
+
+### 1. Prefix e Suffix — com suporte a ações
+
+Todo componente que tem uma área de input, trigger ou display deve ter slots `prefix` e `suffix`.
+Esses slots **não são decorativos** — eles podem conter elementos interativos: botões, ícones
+clicáveis, selects, spinners, contadores.
+
+```vue
+<!-- Slots obrigatórios em todo componente com campo/trigger -->
+<slot name="prefix" />   <!-- antes do conteúdo principal -->
+<slot name="suffix" />   <!-- depois do conteúdo principal -->
+```
+
+**Exemplos de uso real:**
+```vue
+<!-- Prefix com ícone estático -->
+<InputText v-model="search">
+  <template #prefix><SearchIcon class="h-4 w-4 text-muted-foreground" /></template>
+</InputText>
+
+<!-- Suffix com botão de ação -->
+<InputText v-model="url">
+  <template #suffix>
+    <button @click="copyToClipboard(url)" class="hover:text-primary">
+      <CopyIcon class="h-4 w-4" />
+    </button>
+  </template>
+</InputText>
+
+<!-- Prefix com select (ex: DDI no telefone) -->
+<InputText v-model="phone" type="tel">
+  <template #prefix>
+    <select v-model="ddi" class="border-0 bg-transparent text-sm pr-1">
+      <option value="+55">🇧🇷 +55</option>
+      <option value="+1">🇺🇸 +1</option>
+    </select>
+  </template>
+</InputText>
+
+<!-- Suffix com múltiplos ícones de ação -->
+<InputText v-model="password" type="password">
+  <template #suffix>
+    <button @click="toggleVisible" :aria-label="visible ? 'Ocultar senha' : 'Mostrar senha'">
+      <EyeIcon v-if="!visible" class="h-4 w-4" />
+      <EyeOffIcon v-else class="h-4 w-4" />
+    </button>
+  </template>
+</InputText>
+```
+
+**Regras de implementação:**
+- O `prefix` e `suffix` ficam **dentro** da borda do componente, alinhados verticalmente ao centro
+- Nunca aplicar padding no wrapper quando o slot estiver preenchido — o slot é responsável pelo seu próprio espaçamento
+- Ícones dentro dos slots devem herdar a cor via `currentColor` (não hardcode)
+- Botões dentro dos slots devem ter `type="button"` para não submeter forms
+
+---
+
+### 2. Botão de Ação (Action Button)
+
+Além do prefix/suffix, todo componente pode ter um **botão de ação primário** associado —
+separado visualmente do campo, mas parte do componente. É diferente do suffix: o action button
+fica **fora** da borda, ao lado direito do componente.
+
+```vue
+<!-- Slot action — fora da borda, ao lado do componente -->
+<slot name="action" />
+```
+
+**Prop auxiliar para casos simples:**
+```ts
+interface Props {
+  /** Texto do botão de ação — renderiza botão padrão sem precisar de slot */
+  actionLabel?: string
+  /** Variante do botão de ação */
+  actionVariant?: 'default' | 'outline' | 'ghost'
+  /** Loading state do botão de ação */
+  actionLoading?: boolean
+}
+```
+
+**Emit correspondente:**
+```ts
+const emit = defineEmits<{
+  'action': []  // disparado ao clicar no botão de ação
+}>()
+```
+
+**Exemplos de uso:**
+```vue
+<!-- Prop simples -->
+<InputText v-model="coupon" label="Cupom" action-label="Aplicar" @action="applyCoupon" />
+
+<!-- Slot para ação customizada -->
+<InputText v-model="cep" label="CEP">
+  <template #action>
+    <button @click="searchCep" class="px-3 py-2 border rounded-md text-sm">
+      <SearchIcon class="h-4 w-4" />
+    </button>
+  </template>
+</InputText>
+
+<!-- Card com ação no header -->
+<Card title="Produtos">
+  <template #header-actions>
+    <button @click="addProduct">+ Adicionar</button>
+  </template>
+</Card>
+```
+
+---
+
+### 3. Abertura de Modal
+
+Todo componente que dispara uma ação, exibe um item ou precisa de confirmação deve suportar
+abertura de modal de forma nativa, sem exigir que o pai gerencie isso manualmente.
+
+**Padrão: prop `modal` + composable `useModal`**
+
+```ts
+interface Props {
+  /** Quando true, o clique no componente abre um modal em vez de emitir evento direto */
+  modal?: boolean
+  /** Título do modal (quando modal=true) */
+  modalTitle?: string
+  /** Tamanho do modal */
+  modalSize?: 'sm' | 'md' | 'lg' | 'xl'
+}
+```
+
+**Slot para conteúdo do modal:**
+```vue
+<slot name="modal-content" />   <!-- conteúdo renderizado dentro do modal -->
+<slot name="modal-footer" />    <!-- ações do modal (confirmar, cancelar) -->
+```
+
+**Exemplo — input que abre modal de busca avançada:**
+```vue
+<SelectInput v-model="product" modal modal-title="Selecionar Produto" modal-size="lg">
+  <template #modal-content>
+    <ProductSearchTable @select="onProductSelect" />
+  </template>
+</SelectInput>
+```
+
+**Exemplo — card que abre modal ao clicar:**
+```vue
+<Card title="Ver detalhes" modal modal-title="Detalhes do Pedido">
+  <template #modal-content>
+    <OrderDetails :order="order" />
+  </template>
+</Card>
+```
+
+**Implementação interna:**
+```vue
+<template>
+  <!-- O componente principal -->
+  <div @click="modal ? openModal() : emit('click')">...</div>
+
+  <!-- Modal integrado via Teleport -->
+  <Teleport to="body">
+    <Modal v-model="isModalOpen" :title="modalTitle" :size="modalSize">
+      <slot name="modal-content" />
+      <template #footer>
+        <slot name="modal-footer">
+          <button @click="closeModal">Fechar</button>
+        </slot>
+      </template>
+    </Modal>
+  </Teleport>
+</template>
+```
+
+---
+
+### 4. Help Text (Texto de Ajuda)
+
+Todo componente deve ter suporte a texto de ajuda contextual — exibido abaixo do componente,
+distinto da mensagem de erro.
+
+**Props:**
+```ts
+interface Props {
+  /** Texto de ajuda exibido abaixo do componente */
+  hint?: string
+  /** Quando true, exibe ícone de interrogação clicável que mostra o hint em tooltip */
+  hintTooltip?: boolean
+}
+```
+
+**Slot para hint rico (com HTML, links, etc.):**
+```vue
+<slot name="hint" />
+```
+
+**Lógica de exibição — prioridade:**
+```
+error > hint
+```
+Nunca exibir hint e error ao mesmo tempo — o erro tem prioridade absoluta.
+
+**Variantes de hint:**
+
+```vue
+<!-- Hint simples abaixo do campo -->
+<InputText v-model="cnpj" label="CNPJ" hint="Somente números, sem pontuação" />
+
+<!-- Hint como tooltip no label (ícone ?) -->
+<InputText v-model="slug" label="Slug" hint="URL amigável gerada automaticamente" hint-tooltip />
+
+<!-- Hint rico via slot -->
+<InputText v-model="password" label="Senha">
+  <template #hint>
+    A senha deve ter pelo menos 8 caracteres,
+    <a href="/politica" class="underline">veja nossa política</a>.
+  </template>
+</InputText>
+```
+
+**Implementação:**
+```vue
+<!-- Hierarquia de exibição -->
+<p v-if="error" :id="errorId" role="alert" class="text-sm text-destructive flex gap-1 items-center">
+  <slot name="error-icon"><TriangleAlertIcon class="h-3.5 w-3.5 shrink-0" /></slot>
+  {{ error }}
+</p>
+<div v-else-if="$slots.hint || hint" :id="hintId" class="text-sm text-muted-foreground">
+  <slot name="hint">{{ hint }}</slot>
+</div>
+```
+
+---
+
+### 5. Feedback de Erros
+
+Todo componente deve ter um sistema de feedback de erro completo — não apenas exibir uma
+string vermelha, mas comunicar o problema de forma clara, acessível e acionável.
+
+**Props:**
+```ts
+interface Props {
+  /** Mensagem de erro — ativa estado de erro quando presente */
+  error?: string
+  /** Array de erros — quando há múltiplos problemas */
+  errors?: string[]
+  /** Quando true, exibe o erro como tooltip em vez de texto abaixo */
+  errorTooltip?: boolean
+}
+```
+
+**Estados visuais obrigatórios quando `error` presente:**
+```
+borda → destructive color
+label → destructive color
+ícone de erro → aparece no suffix (por padrão) ou prefix
+texto de erro → abaixo do componente, em destructive color
+fundo → leve tint de destructive (bg-destructive/5)
+```
+
+**Slot para ícone de erro customizado:**
+```vue
+<slot name="error-icon">
+  <!-- fallback padrão -->
+  <TriangleAlertIcon class="h-3.5 w-3.5 shrink-0" />
+</slot>
+```
+
+**Múltiplos erros (ex: validação complexa):**
+```vue
+<!-- errors prop com array -->
+<PasswordInput v-model="password" :errors="['Mínimo 8 caracteres', 'Requer número', 'Requer símbolo']" />
+
+<!-- Renderização como lista -->
+<ul v-if="errors?.length" role="alert" class="text-sm text-destructive space-y-0.5">
+  <li v-for="err in errors" :key="err" class="flex gap-1 items-center">
+    <TriangleAlertIcon class="h-3 w-3 shrink-0" />
+    {{ err }}
+  </li>
+</ul>
+```
+
+**Integração com Inertia (formulários Laravel):**
+```vue
+<!-- O componente aceita diretamente o objeto de erros do Inertia -->
+<InputText
+  v-model="form.email"
+  label="E-mail"
+  :error="form.errors.email"
+/>
+
+<!-- Para múltiplos erros do backend -->
+<InputText
+  v-model="form.tags"
+  label="Tags"
+  :errors="form.errors['tags'] ? [form.errors['tags']] : []"
+/>
+```
+
+**Acessibilidade obrigatória para erros:**
+- `aria-invalid="true"` no elemento interativo quando `error` presente
+- `aria-describedby` apontando para o `id` do elemento de erro
+- `role="alert"` na mensagem de erro (anuncia para leitores de tela automaticamente)
+- A mensagem de erro deve ser suficientemente descritiva — não apenas "Campo inválido"
+
+---
+
+### Checklist universal — verificar em TODO componente gerado
+
+Antes de entregar qualquer componente, confirme:
+
+- [ ] Slot `prefix` implementado (com suporte a ícone e botão de ação)
+- [ ] Slot `suffix` implementado (com suporte a ícone e botão de ação)
+- [ ] Slot `action` ou prop `action-label` + emit `action` implementados
+- [ ] Prop `modal` + slot `modal-content` implementados via Teleport
+- [ ] Prop `hint` + slot `hint` implementados
+- [ ] Prop `hint-tooltip` implementado (ícone ? no label)
+- [ ] Prop `error` implementada com todos os estados visuais (borda, label, fundo, ícone, texto)
+- [ ] Prop `errors` (array) para múltiplos erros
+- [ ] Slot `error-icon` para customização do ícone de erro
+- [ ] `aria-invalid`, `aria-describedby`, `role="alert"` presentes
+- [ ] `hint` e `error` nunca exibidos simultaneamente (error tem prioridade)
+
+---
+
+## Composable: `useFieldWatcher` — Campos Reativos
+
+Todo componente gerado deve ser compatível com o sistema de escuta reativa entre campos.
+Quando o usuário descrever um comportamento do tipo **"ao mudar X, atualiza Y"**, gere
+o composable `useFieldWatcher` e demonstre como conectá-lo aos componentes.
+
+### O problema que resolve
+
+```
+Usuário seleciona produto  →  price carrega automaticamente
+price ou quantidade muda   →  total é recalculado
+Em um repeater com N linhas, cada linha tem seu próprio contexto isolado
+```
+
+### Composable `useFieldWatcher`
+
+```ts
+// composables/useFieldWatcher.ts
+
+import { watch, type Ref, type WatchStopHandle } from 'vue'
+
+type FieldPath = string  // 'product_id' | 'items.2.product_id' | 'items[2].product_id'
+type WatcherCallback<T = any> = (newValue: T, oldValue: T, context: WatcherContext) => void | Promise<void>
+
+interface WatcherContext {
+  /** Caminho completo do campo que disparou */
+  field: FieldPath
+  /** Index da linha se estiver dentro de um repeater (null se não) */
+  index: number | null
+  /** Chave composta para acesso ao campo: items[2].product_id */
+  key: string
+  /** Função para setar outro campo no mesmo contexto */
+  set: (field: FieldPath, value: any) => void
+  /** Função para pegar o valor de outro campo no mesmo contexto */
+  get: (field: FieldPath) => any
+}
+
+interface FieldWatcherOptions {
+  /** O objeto reativo completo do formulário (Inertia useForm ou reactive/ref) */
+  form: Record<string, any>
+  /** Prefixo do contexto — para campos dentro de repeater: 'items' */
+  scope?: string
+  /** Index da linha — para campos dentro de repeater */
+  index?: number | Ref<number>
+}
+
+export function useFieldWatcher(options: FieldWatcherOptions) {
+  const { form, scope, index } = options
+  const stopHandles: WatchStopHandle[] = []
+
+  /** Resolve o caminho completo do campo considerando scope e index */
+  function resolvePath(field: FieldPath): string {
+    if (scope === undefined) return field
+    const idx = typeof index === 'object' ? index.value : index
+    return idx !== undefined ? `${scope}[${idx}].${field}` : `${scope}.${field}`
+  }
+
+  /** Acessa um valor aninhado via dot/bracket notation */
+  function getNestedValue(obj: any, path: string): any {
+    return path
+      .replace(/\[(\d+)\]/g, '.$1')
+      .split('.')
+      .reduce((acc, key) => acc?.[key], obj)
+  }
+
+  /** Seta um valor aninhado via dot/bracket notation */
+  function setNestedValue(obj: any, path: string, value: any): void {
+    const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.')
+    const last = keys.pop()!
+    const target = keys.reduce((acc, key) => acc?.[key], obj)
+    if (target && last) target[last] = value
+  }
+
+  /** Cria o contexto passado para o callback */
+  function buildContext(field: FieldPath): WatcherContext {
+    const idx = typeof index === 'object' ? index.value : index
+    const resolvedPath = resolvePath(field)
+    return {
+      field,
+      index: idx ?? null,
+      key: resolvedPath,
+      set: (targetField, value) => setNestedValue(form, resolvePath(targetField), value),
+      get: (targetField) => getNestedValue(form, resolvePath(targetField)),
+    }
+  }
+
+  /**
+   * Registra um watcher para um campo.
+   * @param field  - nome do campo a observar (relativo ao scope)
+   * @param cb     - callback executado quando o campo muda
+   */
+  function watch_field<T = any>(field: FieldPath, cb: WatcherCallback<T>): void {
+    const resolvedPath = resolvePath(field)
+    const stop = watch(
+      () => getNestedValue(form, resolvedPath),
+      (newVal, oldVal) => cb(newVal, oldVal, buildContext(field)),
+      { deep: true }
+    )
+    stopHandles.push(stop)
+  }
+
+  /** Para todos os watchers registrados */
+  function stop(): void {
+    stopHandles.forEach(fn => fn())
+    stopHandles.length = 0
+  }
+
+  return { watch: watch_field, stop }
+}
+```
+
+---
+
+### Uso em formulário simples (sem repeater)
+
+```ts
+// Pages/Orders/Create.vue
+import { useForm } from '@inertiajs/vue3'
+import { useFieldWatcher } from '@/composables/useFieldWatcher'
+import { onUnmounted } from 'vue'
+
+const form = useForm({
+  product_id: null,
+  price: 0,
+  quantity: 1,
+  total: 0,
+})
+
+const { watch, stop } = useFieldWatcher({ form })
+
+// Ao selecionar produto → carrega o preço via API
+watch('product_id', async (productId, _, ctx) => {
+  if (!productId) return ctx.set('price', 0)
+  const product = await fetch(`/api/products/${productId}`).then(r => r.json())
+  ctx.set('price', product.price)
+})
+
+// Ao mudar price ou quantity → recalcula total
+watch('price', (price, _, ctx) => {
+  ctx.set('total', price * ctx.get('quantity'))
+})
+
+watch('quantity', (qty, _, ctx) => {
+  ctx.set('total', ctx.get('price') * qty)
+})
+
+onUnmounted(stop)
+```
+
+---
+
+### Uso em repeater (linhas com index)
+
+```ts
+// Cada linha do repeater cria seu próprio watcher com contexto isolado
+// components/OrderItemRow.vue
+
+import { useFieldWatcher } from '@/composables/useFieldWatcher'
+import { onUnmounted, toRef } from 'vue'
+
+const props = defineProps<{
+  form: Record<string, any>  // o form completo do pai
+  index: number              // índice da linha
+}>()
+
+// scope='items' + index=2 → resolve 'product_id' como 'items[2].product_id'
+const { watch, stop } = useFieldWatcher({
+  form: props.form,
+  scope: 'items',
+  index: toRef(props, 'index'),  // reativo — funciona mesmo se o index mudar
+})
+
+// Mesma lógica — mas isolada para esta linha
+watch('product_id', async (productId, _, ctx) => {
+  if (!productId) return ctx.set('price', 0)
+  const product = await fetch(`/api/products/${productId}`).then(r => r.json())
+  ctx.set('price', product.price)
+  // ctx.key === 'items[2].product_id'
+  // ctx.index === 2
+})
+
+watch('price', (price, _, ctx) => {
+  ctx.set('total', price * ctx.get('quantity'))
+})
+
+watch('quantity', (qty, _, ctx) => {
+  ctx.set('total', ctx.get('price') * qty)
+})
+
+onUnmounted(stop)
+```
+
+**Template do repeater no pai:**
+```vue
+<template>
+  <div v-for="(item, index) in form.items" :key="item._key">
+    <OrderItemRow :form="form" :index="index" />
+  </div>
+  <button type="button" @click="addItem">+ Adicionar item</button>
+</template>
+
+<script setup lang="ts">
+function addItem() {
+  form.items.push({
+    _key: crypto.randomUUID(),  // key estável para o v-for
+    product_id: null,
+    price: 0,
+    quantity: 1,
+    total: 0,
+  })
+}
+</script>
+```
+
+---
+
+### Chaves compostas suportadas
+
+O composable aceita qualquer notação de caminho:
+
+```ts
+// Dot notation
+'items.product_id'         // → form.items.product_id
+'items.2.product_id'       // → form.items[2].product_id
+
+// Bracket notation
+'items[2].product_id'      // → form.items[2].product_id
+'items[2].details.price'   // → form.items[2].details.price (nested profundo)
+```
+
+O `ctx.set` e `ctx.get` no callback também aceitam caminhos relativos ao scope:
+```ts
+ctx.set('price', 99)       // seta items[2].price
+ctx.get('quantity')        // lê  items[2].quantity
+ctx.set('meta.note', 'x') // seta items[2].meta.note (nested)
+```
+
+---
+
+### Integração nos componentes — emit `change` e `blur`
+
+Todo componente gerado deve emitir `change` e `blur` para permitir conexão com o sistema:
+
+```ts
+// Em qualquer componente (InputText, SelectInput, DatePicker, etc.)
+const emit = defineEmits<{
+  'update:modelValue': [value: any]
+  'change': [value: any]   // dispara após confirmação do valor (blur ou select)
+  'blur': [event: FocusEvent]
+}>()
+
+// Nunca depender apenas do v-model para acionar watchers —
+// o useFieldWatcher observa o form diretamente via Vue watch()
+// mas os emits permitem conexão pontual via @change também:
+```
+
+**Conexão pontual via @change (alternativa ao useFieldWatcher):**
+```vue
+<SelectInput
+  v-model="form.product_id"
+  :options="products"
+  @change="loadProductPrice"
+/>
+
+<InputNumber
+  v-model="form.quantity"
+  @change="recalculateTotal"
+/>
+```
+
+---
+
+### Quando gerar o `useFieldWatcher`
+
+Gere o composable automaticamente quando o usuário descrever qualquer um destes padrões:
+
+- "ao selecionar X, preenche Y"
+- "quando muda X, recalcula Y"
+- "campo Y depende de X"
+- "ao escolher categoria, filtra subcategorias"
+- "preço × quantidade = total"
+- "CEP → preenche endereço"
+- "produto → carrega estoque/preço/descrição"
+- qualquer formulário com **repeater/linhas** que tenha campos dependentes
+
+**Antes de gerar**, sempre verificar se já existe:
+```bash
+find {pasta_composables} -name "useFieldWatcher.ts" 2>/dev/null
+```
+- **Se já existe** → leia o arquivo e apenas gere o exemplo de uso específico para o caso,
+  sem reescrever o composable
+- **Se não existe** → gere o composable completo + o exemplo de uso
+
+Sempre gere junto: o composable (se não existir) + o exemplo de uso específico para o caso descrito.
+
+---
+
 
 ### 1a. Identificar o componente solicitado
 
