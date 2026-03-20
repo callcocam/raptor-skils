@@ -18,6 +18,31 @@ description: >
 
 # Laravel Raptor — Vue Page Layouts
 
+## ⚠️ PRIMEIRA AÇÃO — Obrigatória antes de qualquer outra coisa
+
+**NÃO analise, NÃO gere código, NÃO liste padrões** até ter respondido estas perguntas
+com o usuário. Esta é a primeira mensagem que deve ser enviada ao receber a skill:
+
+```
+Antes de começar, preciso de algumas informações:
+
+1. Qual é o caminho da pasta com o layout base de referência?
+   (ex: resources/js/layouts/, resources/js/Pages/Auth/, etc.)
+   Você pode colar o código aqui ou informar o caminho no projeto.
+
+2. Onde devo salvar os componentes gerados?
+   (sugestão: resources/js/components/page/)
+
+3. Onde devo salvar os composables?
+   (sugestão: resources/js/composables/)
+```
+
+Só prossiga para a **Fase 1** após o usuário responder as três perguntas acima.
+Se o usuário já tiver colado o código na mesma mensagem, ainda assim confirme os
+itens 2 e 3 antes de gerar qualquer arquivo.
+
+---
+
 ## Objetivo
 
 Esta skill analisa modelos/layouts fornecidos pelo usuário e produz um conjunto coeso de
