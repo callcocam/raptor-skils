@@ -46,6 +46,11 @@ Antes de usar esta skill, a base global deve estar pronta via `laravel-raptor-pa
 
 Se a base global não existir, interromper o CRUD e executar primeiro `laravel-raptor-patterns`.
 
+### Skills relacionadas
+
+- **`laravel-raptor-migrations`** — use para auditar as migrations geradas por esta skill (unique composto com tenant_id, ULID, softDeletes, indexes)
+- **`laravel-raptor-i18n`** — use após criar o CRUD para garantir que labels, mensagens e títulos estão em PT-BR via `__()` e `t()`
+
 ### Handoff
 
 Se durante a implementação do CRUD surgir demanda de base global (auth/layout/erro/perfil/tenant), pausar esta skill e acionar `laravel-raptor-patterns`.

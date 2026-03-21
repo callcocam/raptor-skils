@@ -21,6 +21,7 @@ laravel-raptor-setup → laravel-raptor → laravel-raptor-patterns → laravel-
 **Esta skill:** tema, cores, layouts visuais (sidebar, header), dark/light mode, traduções.
 **Antes dela:** `laravel-raptor-setup` (ambiente, stack).
 **Depois dela:** `laravel-raptor-patterns` (páginas globais: auth, erro, perfil, tenant).
+**Relacionada:** `laravel-raptor-i18n` — para varredura minuciosa e correção de textos hardcoded em todo o projeto e pacotes.
 
 ## ⚠️ PRIMEIRA AÇÃO — Obrigatória
 
