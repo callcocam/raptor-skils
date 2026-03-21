@@ -1,19 +1,35 @@
 ---
 name: laravel-raptor-patterns
 description: >
-  Define padrões da base global do projeto Laravel: identidade visual, componentes base, auth,
-  layouts, páginas de erro, perfil do usuário e gerenciamento de tenant. Use para bootstrap visual
-  inicial e estrutura global do app. Não usar para CRUDs ou páginas internas de módulos de negócio
-  (usar laravel-raptor-page).
+  Use when implementar a estrutura global de um projeto Laravel Raptor: estratégia de componentes
+  (shadcn vs. custom), páginas de auth, layouts globais (AppLayout, AuthLayout, Sidebar, Topbar),
+  páginas de erro (403, 404, 500), perfil do usuário, gerenciamento de tenant, e padrões de
+  autorização via policies. Usar APÓS laravel-raptor (identidade visual já definida). Não usar
+  para CRUDs ou módulos de negócio — usar laravel-raptor-page.
 ---
 
 # Laravel Patterns Skill
 
+## Posição no Workflow
+
+```
+laravel-raptor-setup → laravel-raptor → laravel-raptor-patterns → laravel-raptor-components → laravel-raptor-page
+```
+
+**Pré-condição:** `laravel-raptor` concluída (tema, cores, CSS vars, sidebar/header visuais já definidos).
+**Esta skill:** estrutura e páginas globais (quais páginas criar, como organizar componentes).
+**Depois dela:** `laravel-raptor-components` (componentes individuais) ou `laravel-raptor-page` (CRUDs).
+
+---
+
 ## Visão Geral
 
-Este skill cobre somente a base global do projeto.
+Este skill cobre somente a base global do projeto — estrutura de páginas e organização, não identidade visual.
 
-Todo projeto novo passa por um **bootstrap visual obrigatório** antes de qualquer tela de negócio (ver Passo 0).
+A identidade visual (tema, cores, dark mode, tailwind tokens) é responsabilidade da skill `laravel-raptor`.
+Esta skill usa a identidade visual já estabelecida e constrói a estrutura de páginas sobre ela.
+
+Todo projeto novo passa por um **bootstrap de estrutura obrigatório** antes de qualquer tela de negócio (ver Passo 0).
 
 ### Ambiente de execução
 
@@ -24,7 +40,8 @@ Todo projeto novo passa por um **bootstrap visual obrigatório** antes de qualqu
 
 ### Escopo desta skill
 
-- Base visual (tokens, paleta, tipografia, componentes ui)
+- Estratégia de componentes (shadcn-vue vs. custom — baseada nos mocks)
+- Organização da pasta de componentes (`ui/`, `shared/`, `layout/`)
 - Layouts globais (`AppLayout`, `AuthLayout`, navegação)
 - Telas de autenticação
 - Páginas de erro (`403`, `404`, `500`)
@@ -57,9 +74,11 @@ Se houver dúvida: primeiro preparar base global com `laravel-raptor-patterns`, 
 
 ---
 
-## Passo 0 — Bootstrap Visual (projeto novo ou sem base visual)
+## Passo 0 — Bootstrap de Estrutura (projeto novo ou sem estrutura global)
 
-Antes de criar qualquer tela de negócio, verificar se o projeto já tem a base visual estabelecida:
+> **Atenção:** O tema visual (cores, CSS vars, dark mode, tailwind tokens) deve estar definido antes deste passo — use `laravel-raptor` primeiro se ainda não estiver feito.
+
+Antes de criar qualquer tela de negócio, verificar se o projeto já tem a estrutura global estabelecida:
 
 ```bash
 # Verificar se auth já foi personalizado
@@ -72,9 +91,9 @@ ls resources/js/components/
 ls resources/js/layouts/
 ```
 
-Se qualquer um desses ainda estiver no padrão Laravel/Breeze virgem → **executar o bootstrap visual primeiro**.
+Se qualquer um desses ainda estiver no padrão Laravel/Breeze virgem → **executar o bootstrap de estrutura primeiro**.
 
-### O bootstrap visual tem 3 etapas, nesta ordem:
+### O bootstrap de estrutura tem 3 etapas, nesta ordem:
 
 ---
 

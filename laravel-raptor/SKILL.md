@@ -1,23 +1,26 @@
 ---
-name: laravel-raptor-ui
+name: laravel-raptor
 description: >
-  Analisa, refatora e cria a identidade visual completa do Laravel Raptor e Plannerate:
-  converte componentes shadcn-vue existentes para o padrão Raptor, cria/atualiza o layout
-  principal (sidebar, header, content), padroniza os três tipos de listagem (card-rico,
-  linha-compacta, grid-de-dados), configura tema claro/escuro, responsividade mobile,
-  Vue Head dinâmico, traduções PT-BR com integração ao sistema de traduções do Laravel,
-  e estabelece a identidade visual da marca Raptor/Plannerate.
-  Use esta skill SEMPRE que o usuário pedir para: "criar a identidade do raptor", "refatorar
-  o tema", "atualizar o layout principal", "criar o sidebar", "criar o header", "configurar
-  tema escuro", "adaptar para mobile", "configurar traduções pt-br", "corrigir gramática
-  das páginas", "converter shadcn para raptor", "padronizar as páginas de listagem",
-  "configurar Vue Head", ou qualquer pedido relacionado à aparência geral, layout ou
-  identidade do sistema Raptor/Plannerate.
-  Stack: Vue 3 + Inertia.js + TailwindCSS + TypeScript. Sem shadcn obrigatório — cria
-  componentes próprios seguindo a identidade Raptor extraída das telas do sistema.
+  Use when criar ou refatorar a identidade visual de um projeto Laravel Raptor/Plannerate:
+  cores da marca, tokens Tailwind, CSS vars dark/light, AppSidebar, AppHeader,
+  responsividade mobile, dark mode, Vue Head dinâmico, traduções PT-BR, conversão
+  de componentes shadcn-vue para o padrão Raptor, e padronização dos três tipos de
+  listagem (card-rico, linha-compacta, grid-de-dados). Usar APÓS laravel-raptor-setup
+  e ANTES de laravel-raptor-patterns. Não usar para criar páginas de auth, error ou
+  perfil — essas pertencem à laravel-raptor-patterns.
 ---
 
-# Laravel Raptor UI — Identidade Visual e Layout
+# Laravel Raptor — Identidade Visual e Layout
+
+## Posição no Workflow
+
+```
+laravel-raptor-setup → laravel-raptor → laravel-raptor-patterns → laravel-raptor-components → laravel-raptor-page
+```
+
+**Esta skill:** tema, cores, layouts visuais (sidebar, header), dark/light mode, traduções.
+**Antes dela:** `laravel-raptor-setup` (ambiente, stack).
+**Depois dela:** `laravel-raptor-patterns` (páginas globais: auth, erro, perfil, tenant).
 
 ## ⚠️ PRIMEIRA AÇÃO — Obrigatória
 
