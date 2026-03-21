@@ -162,6 +162,104 @@ O FormPage renderiza setas de navegação no header quando presentes.
 
 ---
 
+## Design Tokens — Formulário (extraídos do tema/)
+
+### Separador de seção (ícone + título)
+```html
+<div class="flex items-center gap-2 pb-2 border-b border-outline-variant">
+  <span class="material-symbols-outlined text-primary text-xl">person</span>
+  <h3 class="font-mono font-bold text-sm tracking-widest uppercase text-on-surface-variant">
+    Dados Pessoais
+  </h3>
+</div>
+```
+
+### Input estilo underline (padrão do tema)
+```html
+<div class="space-y-2">
+  <label class="text-xs font-mono font-medium text-on-surface-variant uppercase tracking-wider">
+    Nome Completo
+  </label>
+  <input class="w-full bg-surface-container-low border-b-2 border-outline-variant
+                focus:border-primary focus:ring-0 px-0 py-2 transition-all outline-none
+                placeholder:text-outline/50" />
+  <p class="text-xs text-error">{{ error }}</p>
+</div>
+```
+
+### Input estilo caixa (padrão dos componentes existentes)
+```html
+<input class="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground
+              focus:outline-none focus:ring-1 focus:ring-primary" />
+```
+
+### Checkbox item selecionável (roles/permissões)
+```html
+<!-- Desmarcado -->
+<label class="flex items-center justify-between p-4 rounded-xl border-2 border-outline-variant
+              hover:border-primary/50 transition-all cursor-pointer bg-surface-container-lowest">
+  <div class="flex flex-col">
+    <span class="font-bold text-sm">Administrator</span>
+    <span class="text-[10px] font-mono text-on-surface-variant">FULL_SYSTEM_ACCESS</span>
+  </div>
+  <input type="checkbox" class="rounded text-primary focus:ring-primary h-5 w-5" />
+</label>
+
+<!-- Marcado -->
+<label class="flex items-center justify-between p-4 rounded-xl border-2 border-primary
+              bg-primary/5 transition-all cursor-pointer">
+  <div class="flex flex-col">
+    <span class="font-bold text-sm text-primary">Inventory Manager</span>
+    <span class="text-[10px] font-mono text-primary/70">STOCK_CONTROL_WRITE</span>
+  </div>
+  <input checked type="checkbox" class="rounded text-primary focus:ring-primary h-5 w-5 border-primary" />
+</label>
+```
+
+### Cards de metadados (abaixo ou na sidebar do form)
+```html
+<div class="grid grid-cols-3 gap-4">
+  <div class="p-4 bg-surface rounded-xl border border-outline-variant flex flex-col gap-1">
+    <span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Status</span>
+    <div class="flex items-center gap-2">
+      <span class="w-1.5 h-1.5 bg-primary rounded-full"></span>
+      <span class="font-mono text-sm font-bold text-on-surface">PROVISIONING</span>
+    </div>
+  </div>
+  <div class="p-4 bg-surface rounded-xl border border-outline-variant flex flex-col gap-1">
+    <span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Criado em</span>
+    <span class="font-mono text-sm font-bold text-on-surface">{{ created_at }}</span>
+  </div>
+</div>
+```
+
+### Modal de confirmação de exclusão (visual do tema)
+```html
+<div class="bg-surface-container-lowest border border-outline-variant shadow-2xl rounded-xl max-w-md w-full">
+  <div class="p-6">
+    <div class="flex items-center gap-4 mb-4">
+      <div class="w-12 h-12 bg-error-container text-error rounded-full flex items-center justify-center">
+        <span class="material-symbols-outlined">delete_forever</span>
+      </div>
+      <h3 class="text-xl font-bold font-headline">Excluir registro?</h3>
+    </div>
+    <p class="text-on-surface-variant text-sm leading-relaxed mb-6">
+      Esta ação é permanente e não pode ser desfeita.
+    </p>
+    <div class="flex gap-3 justify-end">
+      <button class="px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-high rounded-lg">
+        Cancelar
+      </button>
+      <button class="px-4 py-2 text-sm font-bold bg-error text-white rounded-lg hover:bg-error-dim shadow-sm">
+        Excluir
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+---
+
 ## Confirmação de Exclusão — Padrão
 
 ```ts
