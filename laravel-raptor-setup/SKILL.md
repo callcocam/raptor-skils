@@ -27,6 +27,30 @@ Stack padrão do projeto:
 
 ---
 
+## Passo 0 — Verificar estado anterior
+
+**ANTES de qualquer ação**, verificar se o setup já foi aplicado neste projeto:
+
+```bash
+ls app/Models/AbstractModel.php 2>/dev/null \
+  && grep -l "HasUlids" app/Models/AbstractModel.php 2>/dev/null \
+  && echo "Setup anterior encontrado" || echo "Projeto virgem"
+```
+
+| Resultado | Ação |
+|-----------|------|
+| `AbstractModel` com `HasUlids` encontrado | Perguntar ao usuário |
+| Não encontrado | Prosseguir normalmente |
+
+**Se encontrar estado anterior:**
+
+> "Encontrei evidências de que este projeto já passou pelo setup Raptor. O que deseja fazer?"
+> - **Refazer** — reconfigurar tudo do zero (sobreescreve o que existe)
+> - **Atualizar** — verificar apenas o que está diferente do padrão e corrigir pontualmente
+> - **Sem limitação** — revisar e aplicar todas as etapas sem filtrar pelo que já existe
+
+---
+
 ## Passo 1 — Detectar se vai usar Sail
 
 Antes de qualquer comando, confirmar:

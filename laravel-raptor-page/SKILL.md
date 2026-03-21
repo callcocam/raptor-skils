@@ -68,6 +68,34 @@ Se a base global não estiver pronta, retornar o fluxo para `laravel-raptor-patt
 
 ---
 
+## Passo 0 — Verificar estado anterior do recurso
+
+**ANTES de iniciar**, verificar se o recurso solicitado já foi gerado anteriormente.
+
+Primeiro identificar o nome do recurso (pelo mock ou pelo que o usuário informou), depois verificar:
+
+```bash
+# Substituir {Recurso} pelo nome identificado (ex: Loja, Produto, Pedido)
+ls app/Models/{Recurso}.php \
+   app/Http/Controllers/{Recurso}Controller.php \
+   resources/js/pages/{Recurso}/Index.vue 2>/dev/null \
+  && echo "Recurso anterior encontrado" || echo "Recurso novo"
+```
+
+| Resultado | Ação |
+|-----------|------|
+| Model + Controller + Page encontrados | Perguntar ao usuário |
+| Não encontrado | Prosseguir normalmente |
+
+**Se encontrar recurso anterior:**
+
+> "Encontrei arquivos do recurso `{Recurso}` já existentes. O que deseja fazer?"
+> - **Atualizar** — analisar o que mudou no mock e aplicar apenas as diferenças
+> - **Recriar** — recriar backend e frontend do zero (sobrescreve os arquivos existentes)
+> - **Sem limitação** — gerar todos os arquivos sem verificar o que já existe
+
+---
+
 ## Passo 1 — Localizar o mock
 
 ### Se o usuário passou um caminho explícito:

@@ -10,6 +10,32 @@ description: >
 
 # Laravel Raptor — Internacionalização (i18n)
 
+## Passo 0 — Verificar estado anterior
+
+**ANTES de qualquer ação**, verificar se uma varredura já foi feita:
+
+```bash
+ls .raptor/i18n-report.md 2>/dev/null \
+  && head -8 .raptor/i18n-report.md \
+  || echo "Nenhuma varredura anterior encontrada"
+```
+
+| Resultado | Ação |
+|-----------|------|
+| `.raptor/i18n-report.md` encontrado | Perguntar ao usuário |
+| Não encontrado | Prosseguir normalmente |
+
+**Se encontrar varredura anterior:**
+
+> "Encontrei uma varredura i18n anterior. O que deseja fazer?"
+> - **Refazer** — nova varredura completa (substitui o relatório anterior)
+> - **Continuar pendentes** — usar relatório existente e corrigir apenas os itens ainda não traduzidos
+> - **Sem limitação** — varrer e tratar tudo novamente sem considerar o que já foi corrigido
+
+Ao final de cada varredura, salvar relatório em `.raptor/i18n-report.md`.
+
+---
+
 ## Fluxo obrigatório
 
 ```

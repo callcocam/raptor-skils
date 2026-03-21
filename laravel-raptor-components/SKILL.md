@@ -18,6 +18,32 @@ description: >
 
 # Laravel Raptor — Criação de Componentes Profissionais
 
+## Passo 0 — Verificar componentes existentes
+
+**ANTES de criar qualquer componente**, verificar o que já existe:
+
+```bash
+# Listar componentes ui/ existentes
+ls resources/js/components/ui/*.vue 2>/dev/null | head -10 \
+  && echo "Biblioteca existente encontrada" || echo "Sem componentes ui/ anteriores"
+```
+
+| Resultado | Ação |
+|-----------|------|
+| Componentes `ui/` encontrados | Perguntar ao usuário |
+| Pasta vazia ou ausente | Prosseguir normalmente |
+
+**Se encontrar componentes anteriores:**
+
+> "Encontrei componentes existentes em `components/ui/`. O que deseja fazer?"
+> - **Verificar** — checar se o componente solicitado já existe antes de criar (padrão recomendado)
+> - **Recriar** — criar o componente do zero mesmo que já exista uma versão
+> - **Sem limitação** — criar todos os componentes solicitados sem verificar existência prévia
+
+Se o componente já existir → mostrar o arquivo existente e perguntar se quer atualizar ou criar uma variante.
+
+---
+
 ## ⚠️ PRIMEIRA AÇÃO — Obrigatória antes de qualquer geração
 
 **NÃO gere nenhum código** até executar este roteiro de perguntas na primeira mensagem:

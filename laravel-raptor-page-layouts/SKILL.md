@@ -18,6 +18,30 @@ description: >
 
 # Laravel Raptor — Vue Page Layouts
 
+## Passo 0 — Verificar estado anterior
+
+**ANTES de qualquer análise**, verificar se layouts de página já foram extraídos:
+
+```bash
+ls resources/js/components/page/ListPage.vue \
+   resources/js/components/page/FormPage.vue 2>/dev/null \
+  && echo "Layouts anteriores encontrados" || echo "Nenhum layout de página anterior"
+```
+
+| Resultado | Ação |
+|-----------|------|
+| `ListPage.vue` e/ou `FormPage.vue` encontrados | Perguntar ao usuário |
+| Não encontrado | Prosseguir normalmente |
+
+**Se encontrar layouts anteriores:**
+
+> "Encontrei layouts de página já extraídos neste projeto. O que deseja fazer?"
+> - **Atualizar** — analisar o novo input e apenas complementar/corrigir os layouts existentes
+> - **Recriar** — extrair e recriar todos os layouts do zero (sobrescreve os existentes)
+> - **Sem limitação** — gerar tudo novamente sem considerar o que já existe
+
+---
+
 ## ⚠️ PRIMEIRA AÇÃO — Obrigatória antes de qualquer outra coisa
 
 **NÃO analise, NÃO gere código, NÃO liste padrões** até ter respondido estas perguntas

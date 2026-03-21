@@ -9,6 +9,32 @@ description: >
 
 # Laravel Raptor — Migrations
 
+## Passo 0 — Verificar estado anterior
+
+**ANTES de qualquer ação**, verificar se uma auditoria já foi feita:
+
+```bash
+ls .raptor/migrations-audit.md 2>/dev/null \
+  && head -5 .raptor/migrations-audit.md \
+  || echo "Nenhuma auditoria anterior encontrada"
+```
+
+| Resultado | Ação |
+|-----------|------|
+| `.raptor/migrations-audit.md` encontrado | Perguntar ao usuário |
+| Não encontrado | Prosseguir normalmente |
+
+**Se encontrar auditoria anterior:**
+
+> "Encontrei uma auditoria anterior de migrations. O que deseja fazer?"
+> - **Refazer** — nova varredura completa (substitui o relatório anterior)
+> - **Continuar pendentes** — usar relatório existente e tratar apenas os itens ainda não corrigidos
+> - **Sem limitação** — varrer tudo novamente sem considerar o que já foi tratado
+
+Ao final de cada varredura, salvar relatório em `.raptor/migrations-audit.md`.
+
+---
+
 ## Dois modos de uso
 
 ```

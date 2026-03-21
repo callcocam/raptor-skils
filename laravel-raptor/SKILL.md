@@ -23,6 +23,30 @@ laravel-raptor-setup → laravel-raptor → laravel-raptor-patterns → laravel-
 **Depois dela:** `laravel-raptor-patterns` (páginas globais: auth, erro, perfil, tenant).
 **Relacionada:** `laravel-raptor-i18n` — para varredura minuciosa e correção de textos hardcoded em todo o projeto e pacotes.
 
+## Passo 0 — Verificar estado anterior
+
+**ANTES de qualquer ação**, verificar se a identidade visual já foi aplicada:
+
+```bash
+# Verificar tokens Raptor no Tailwind e CSS vars no app.css
+grep -l "F59E0B\|sidebar.*1A2035\|--sidebar" tailwind.config.* resources/css/app.css 2>/dev/null \
+  && echo "Identidade anterior encontrada" || echo "Sem identidade visual anterior"
+```
+
+| Resultado | Ação |
+|-----------|------|
+| Tokens Raptor encontrados | Perguntar ao usuário |
+| Não encontrado | Prosseguir normalmente |
+
+**Se encontrar estado anterior:**
+
+> "Encontrei uma identidade visual Raptor já aplicada neste projeto. O que deseja fazer?"
+> - **Refazer** — nova análise e reaplicação completa da identidade
+> - **Atualizar** — verificar apenas o que diverge do padrão atual e corrigir pontualmente
+> - **Sem limitação** — revisar e reaplica tudo sem filtrar pelo que já existe
+
+---
+
 ## ⚠️ PRIMEIRA AÇÃO — Obrigatória
 
 **NÃO gere nenhum código** até concluir este levantamento completo.

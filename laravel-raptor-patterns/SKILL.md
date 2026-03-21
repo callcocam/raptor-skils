@@ -74,6 +74,31 @@ Se houver dúvida: primeiro preparar base global com `laravel-raptor-patterns`, 
 
 ---
 
+## Passo 0a — Verificar estado anterior
+
+**ANTES de qualquer ação**, verificar se a estrutura global já foi criada:
+
+```bash
+ls resources/js/layouts/AppLayout.vue \
+   resources/js/pages/auth/Login.vue \
+   resources/js/pages/errors/404.vue 2>/dev/null \
+  && echo "Estrutura anterior encontrada" || echo "Projeto sem estrutura global"
+```
+
+| Resultado | Ação |
+|-----------|------|
+| AppLayout + Auth + Erros encontrados | Perguntar ao usuário |
+| Não encontrado | Prosseguir normalmente |
+
+**Se encontrar estado anterior:**
+
+> "Encontrei estrutura global Raptor já criada neste projeto. O que deseja fazer?"
+> - **Refazer** — recriar toda a estrutura global do zero
+> - **Atualizar** — verificar apenas o que está faltando ou divergindo e completar pontualmente
+> - **Sem limitação** — revisar e reaplicar tudo sem filtrar pelo que já existe
+
+---
+
 ## Passo 0 — Bootstrap de Estrutura (projeto novo ou sem estrutura global)
 
 > **Atenção:** O tema visual (cores, CSS vars, dark mode, tailwind tokens) deve estar definido antes deste passo — use `laravel-raptor` primeiro se ainda não estiver feito.
