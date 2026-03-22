@@ -248,26 +248,38 @@ O diagnóstico está correto? Posso prosseguir com a geração?
 
 ## Fase 3 — Arquitetura de Saída
 
-Gere os arquivos na seguinte estrutura (adapte ao projeto do usuário):
+Gere os arquivos na seguinte estrutura (adapte aos caminhos confirmados na PRIMEIRA AÇÃO):
 
 ```
 resources/js/
 ├── components/
-│   └── page/
-│       ├── PageShell.vue          # Container base (padding, max-width, scroll)
-│       ├── PageHeader.vue         # Título, breadcrumb, slot header-actions
-│       ├── PageFilters.vue        # Gerencia filtros, URL sync, chips ativos
-│       ├── PagePagination.vue     # Paginação com meta do Laravel paginate()
-│       ├── PageEmptyState.vue     # Estado vazio configurável
-│       ├── PageBulkActionBar.vue  # Barra de ações em massa
-│       ├── ListPage.vue           # Sublayout completo de listagem
-│       └── FormPage.vue           # Sublayout completo de formulário
-└── composables/
-    ├── usePageFilters.ts          # Lê/escreve query params, debounce, reset
-    ├── useSelection.ts            # Seleção de linhas, select-all, bulk
-    ├── useFormDirty.ts            # Detecta mudanças não salvas, aviso de saída
-    └── usePageActions.ts          # Helpers: loading states, confirmação, toast
+│   └── page/                          ← caminho confirmado na PRIMEIRA AÇÃO
+│       ├── PageShell.vue              # Container base (padding, max-width, scroll)
+│       ├── PageHeader.vue             # Título, breadcrumb, slot #header-actions
+│       ├── PageFilters.vue            # Filtros com chips ativos, "Limpar filtros"
+│       ├── PagePagination.vue         # Paginação com meta do Laravel paginate()
+│       ├── PageEmptyState.vue         # Estado vazio configurável
+│       ├── PageBulkActionBar.vue      # Barra de ações em massa
+│       ├── ListPage.vue               # Sublayout completo de listagem
+│       ├── FormPage.vue               # Sublayout completo de formulário
+│       └── docs/                      # Documentação gerada (um .md por artefato)
+└── composables/                       ← caminho confirmado na PRIMEIRA AÇÃO
+    ├── usePageFilters.ts
+    ├── useSelection.ts
+    ├── useFormDirty.ts
+    └── usePageActions.ts
 ```
+
+**Decisões arquiteturais obrigatórias:**
+
+- `FormPage.vue` tem footer sticky **nativo** (built-in) com "Salvar" e "Cancelar".
+  Não é um slot — é comportamento nativo controlado por `@submit`, `@cancel` e `:loading`.
+  O slot `#footer` existe apenas para override completo do layout (uso raro).
+- `ListPage.vue` não tem botões de ação built-in — header actions, bulk actions e
+  paginação são todos slots.
+- Botões e inputs: usar componentes mapeados na Fase 1 quando disponíveis;
+  caso contrário, HTML+Tailwind puro com os tokens do tema.
+- **Zero imports de `callcocam/*`** em qualquer arquivo gerado.
 
 ---
 
