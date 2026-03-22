@@ -203,7 +203,50 @@ Se um papel não for mapeável com confiança → usar HTML+Tailwind puro para a
 
 ---
 
-## Fase 2 — Arquitetura de Saída
+## Fase 2 — Diagnóstico e Confirmação
+
+Após concluir a Fase 1, apresentar ao usuário o diagnóstico abaixo e **aguardar confirmação** antes de gerar qualquer arquivo.
+
+```
+## Diagnóstico do Ambiente
+
+### Tokens de Tema Identificados
+[Listar tokens extraídos, ex:]
+- Cor primária: `--color-primary` / `bg-primary`
+- Cor de fundo: `--color-background` / `bg-background`
+- Borda: `--color-border`
+- Destructive: `--color-destructive`
+- Radius padrão: `rounded-md`
+
+### Componentes de UI Disponíveis para Reuso
+[Listar componentes encontrados com ✅ ou ❌:]
+- ✅ Button.vue → papel: botão primário (variant="default") e secundário (variant="outline")
+- ✅ Input.vue → papel: input de texto
+- ❌ Dialog → não encontrado, usará `window.confirm()` como fallback
+- ❌ Toast → não encontrado, usará implementação inline
+
+### O Que Será Gerado
+- ListPage: header + filtros + tabela + paginação + bulk actions + empty state
+- FormPage: header + conteúdo principal + sidebar + footer sticky nativo (Salvar/Cancelar)
+- 6 componentes de suporte: PageShell, PageHeader, PageFilters, PagePagination,
+  PageEmptyState, PageBulkActionBar
+- 4 composables: usePageFilters, useSelection, useFormDirty, usePageActions
+- Documentação markdown em `<caminho-componentes>/docs/`
+
+### Como os Tokens Serão Aplicados
+- Botão primário → [componente ou HTML+Tailwind] com classes `bg-primary text-primary-foreground`
+- Input → [componente ou HTML+Tailwind]
+- Card/container → `rounded-lg border bg-card`
+- Footer → `bg-white border-t` (ou equivalente com tokens do tema)
+
+O diagnóstico está correto? Posso prosseguir com a geração?
+```
+
+**Aguardar confirmação do usuário.** Se corrigir algo (token errado, componente diferente), atualizar o diagnóstico interno e reconfirmar.
+
+---
+
+## Fase 3 — Arquitetura de Saída
 
 Gere os arquivos na seguinte estrutura (adapte ao projeto do usuário):
 
