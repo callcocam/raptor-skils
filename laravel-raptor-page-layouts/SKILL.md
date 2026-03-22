@@ -625,7 +625,10 @@ Exports: `confirm`, `toast` (`{ success, error, warning }`), `withLoading`
 
 ## Fase 6 — Documentação dos Componentes
 
-Para cada componente gerado, produza um bloco de documentação em markdown com:
+Para cada componente e composable gerado, salvar um arquivo markdown em
+`<caminho-componentes>/docs/` (ex: `resources/js/components/page/docs/`).
+
+Formato de cada arquivo:
 
 ```markdown
 ## NomeDoComponente
@@ -637,51 +640,95 @@ Para cada componente gerado, produza um bloco de documentação em markdown com:
 ### Props
 | Prop | Tipo | Obrigatório | Default | Descrição |
 |------|------|-------------|---------|-----------|
-| title | string | ✅ | — | Título principal |
-| loading | boolean | ❌ | false | Exibe skeleton |
 
 ### Slots
 | Slot | Escopo | Descrição |
 |------|--------|-----------|
-| default | — | Corpo da listagem |
-| header-actions | — | Botões do cabeçalho |
-| filters | — | Componente de filtros |
-| bulk-actions | `{ selected, clear }` | Ações em massa |
 
 ### Emits
 | Evento | Payload | Descrição |
 |--------|---------|-----------|
-| page-change | `{ page: number }` | Mudança de página |
 
 ### Exemplo mínimo de uso
 \`\`\`vue
+<!-- exemplo em PT-BR aqui -->
+\`\`\`
+```
+
+**Exemplo mínimo para ListPage:**
+```vue
 <ListPage title="Produtos" :total="meta.total">
   <template #header-actions>
-    <button @click="criar">Novo</button>
+    <button @click="criar">Novo Produto</button>
   </template>
-  <ProductTable :items="products" />
+  <template #default>
+    <TabelaProdutos :itens="produtos" />
+  </template>
 </ListPage>
-\`\`\`
+```
+
+**Exemplo mínimo para FormPage:**
+```vue
+<FormPage
+  :title="form.id ? 'Editando Produto' : 'Novo Produto'"
+  :loading="form.processing"
+  :dirty="form.isDirty"
+  @submit="salvar"
+  @cancel="voltar"
+>
+  <template #default>
+    <!-- campos -->
+  </template>
+</FormPage>
 ```
 
 ---
 
 ## Fase 7 — Checklist final antes de entregar
 
+### Estrutura e TypeScript
 - [ ] Todos os componentes têm `<script setup lang="ts">`
-- [ ] Props com `defineProps<{...}>()` tipadas
-- [ ] Emits com `defineEmits<{...}>()` tipados
-- [ ] Slots documentados com comentários inline no `.vue` E na documentação markdown
-- [ ] Nenhuma lógica de negócio nos componentes de layout
-- [ ] Estados de loading, vazio e erro cobertos
-- [ ] Classes Tailwind sem valores arbitrários desnecessários
-- [ ] Componentes de UI adaptados ao que o projeto usa (não forçar shadcn)
+- [ ] Props com `defineProps<{}>()` totalmente tipadas
+- [ ] Emits com `defineEmits<{}>()` totalmente tipados
+- [ ] Slots documentados com comentários inline no `.vue` e na documentação markdown
 - [ ] Composables exportam apenas o necessário (sem expor estado interno)
-- [ ] Documentação markdown gerada para cada componente e composable
+
+### Lógica e comportamento
+- [ ] Nenhuma lógica de negócio nos componentes de layout
+- [ ] Estados de carregamento, vazio e erro cobertos em cada componente
+- [ ] FormPage com footer sticky nativo funcionando (Salvar/Cancelar)
+- [ ] `useFormDirty` integrado ao FormPage (aviso "Você tem alterações não salvas")
+- [ ] Bulk actions só aparecem com seleção ativa
+- [ ] `usePageActions.confirm` usa Dialog descoberto ou `window.confirm` como fallback
+- [ ] `usePageActions.toast` usa Toast descoberto ou implementação inline como fallback
+
+### Tema e visual
+- [ ] Tokens do tema aplicados consistentemente (CSS vars `@theme {}` ou `:root {}`)
+- [ ] Sem valores Tailwind arbitrários que contradizem o tema
+- [ ] Dark mode respeitado se o tema tiver tokens de dark mode
+
+### Dependências e stack
+- [ ] **Zero imports de `callcocam/*`** em qualquer arquivo gerado
+- [ ] Compatível com Laravel 12/13 (sem assumir Breeze ou qualquer starter kit)
+- [ ] Compatível com Tailwind v4 (sem `tailwind.config.js`)
+- [ ] Componentes UI mapeados por papel funcional — sem assumir nomes fixos
+- [ ] Fallback HTML+Tailwind para papéis não mapeáveis
+
+### Textos e idioma
+- [ ] Todos os textos de interface hardcoded em PT-BR
+- [ ] Labels padrão: "Salvar", "Cancelar", "Excluir", "Novo", "Buscar", "Limpar filtros"
+- [ ] Mensagens de estado vazio em PT-BR
+- [ ] Mensagens de confirmação em PT-BR
+- [ ] Exports de composables em inglês (padrão de código interno)
+
+### Documentação
+- [ ] Documentação markdown gerada em `<caminho-componentes>/docs/`
+- [ ] Um arquivo .md por componente (8 total) e por composable (4 total)
+- [ ] Exemplo mínimo PT-BR em cada bloco de documentação
 
 ---
 
 ## Referências adicionais
 
-- Leia `references/list-patterns.md` para exemplos de variações de listagem
-- Leia `references/form-patterns.md` para exemplos de variações de formulário
+- Leia `references/list-patterns.md` para variações de listagem
+- Leia `references/form-patterns.md` para variações de formulário
