@@ -1,19 +1,24 @@
 ---
 name: laravel-raptor-page-layouts
 description: >
-  Analisa layouts Vue/HTML colados no chat ou prints/screenshots de páginas para identificar
-  padrões repetidos e extraí-los em componentes reutilizáveis de Lista e Formulário, mais
-  composables TypeScript e documentação de uso. Use esta skill SEMPRE que o usuário pedir para:
-  criar componentes de página de listagem, criar componentes de formulário, extrair padrões
-  repetidos de páginas Vue, criar layouts base de lista ou form, criar composables de
-  filtros/seleção/paginação, ou quando mencionar "ListPage", "FormPage", "layout de lista",
-  "layout de form", "componentes de página", "garimpar padrões", "sublayout", "page layout".
-  Também acione quando o usuário colar código Vue/HTML e pedir para "componentizar", "refatorar
-  em componentes", "extrair o que é comum", ou quando fornecer um print de página pedindo para
-  criar os componentes correspondentes. Entradas aceitas: código Vue/HTML colado no chat OU
-  imagens/screenshots de páginas. Saída: arquivos .vue, composables .ts e documentação markdown.
-  Stack: Vue 3 + Composition API + TypeScript + TailwindCSS + Inertia.js (sem shadcn obrigatório
-  — adapta aos componentes de UI que o projeto já usa).
+  Gera componentes reutilizáveis de página (ListPage, FormPage) e composables TypeScript
+  para projetos Laravel + Inertia + Vue 3 + Tailwind, partindo obrigatoriamente de um
+  tema base (pasta com design-system ou documento de tema). Não depende de pacotes
+  callcocam — funciona com Laravel puro (versão 12 ou 13). Use esta skill SEMPRE que
+  o usuário pedir para: criar componentes de página de listagem, criar componentes de
+  formulário, extrair padrões de páginas Vue, criar layouts base de lista ou formulário,
+  criar composables de filtros/seleção/paginação/dirty-check, ou quando mencionar
+  "ListPage", "FormPage", "layout de lista", "layout de formulário", "componentes de
+  página", "sublayout", "page layout". Também acione quando o usuário quiser
+  "componentizar páginas", "criar base de listagem", "criar base de formulário",
+  "extrair o que é comum nas páginas", "padrão de lista e form", "gerar page layouts",
+  "criar estrutura de páginas", "partir do tema base", "construir do zero com tema",
+  "design-system como base", "tema como fundação". Entrada obrigatória: pasta de
+  design-system OU documento de tema colado. Entrada opcional: código Vue/HTML ou
+  screenshot como referência visual de estilo. Saída: arquivos .vue, composables .ts e
+  documentação markdown em docs/. Stack: Laravel 12/13 + Vue 3 + Composition API +
+  TypeScript + TailwindCSS v4 + Inertia.js. Todos os textos hardcoded em PT-BR.
+  Zero dependências de pacotes callcocam/*.
 ---
 
 # Laravel Raptor — Vue Page Layouts
