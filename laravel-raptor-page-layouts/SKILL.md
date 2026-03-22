@@ -23,7 +23,7 @@ description: >
 
 # Laravel Raptor — Vue Page Layouts
 
-## Passo 0 — Verificar estado anterior
+## Fase 0 — Verificar estado anterior
 
 **ANTES de qualquer análise**, verificar se layouts de página já foram extraídos:
 
@@ -41,70 +41,47 @@ ls resources/js/components/page/ListPage.vue \
 **Se encontrar layouts anteriores:**
 
 > "Encontrei layouts de página já extraídos neste projeto. O que deseja fazer?"
-> - **Atualizar** — analisar o novo input e apenas complementar/corrigir os layouts existentes
-> - **Recriar** — extrair e recriar todos os layouts do zero (sobrescreve os existentes)
+> - **Atualizar** — ler o novo tema e apenas complementar/corrigir os layouts existentes
+> - **Recriar** — gerar todos os componentes do zero (sobrescreve os existentes)
 > - **Sem limitação** — gerar tudo novamente sem considerar o que já existe
 
 ---
 
 ## ⚠️ PRIMEIRA AÇÃO — Obrigatória antes de qualquer outra coisa
 
-**NÃO analise, NÃO gere código, NÃO liste padrões** até ter respondido estas perguntas
-com o usuário. Esta é a primeira mensagem que deve ser enviada ao receber a skill:
+**NÃO analise, NÃO gere código, NÃO liste padrões** até ter todas as respostas abaixo.
+Esta é a **primeira mensagem** que deve ser enviada ao receber a skill:
 
 ```
 Antes de começar, preciso de algumas informações:
 
-1. Qual é o caminho da pasta com o layout base de referência?
-   (ex: resources/js/layouts/, resources/js/Pages/Auth/, etc.)
-   Você pode colar o código aqui ou informar o caminho no projeto.
+1. Qual é a base de tema do projeto? (obrigatório — escolha UMA opção)
+   a) Caminho para a pasta do projeto
+      (ex: resources/js/, resources/, .)
+      Vou ler o app.css para encontrar os tokens de tema e listar os
+      componentes de UI disponíveis.
+   b) Cole aqui um documento com as instruções de tema
+      (tokens de cor, tipografia, espaçamentos, convenções visuais)
 
 2. Onde devo salvar os componentes gerados?
    (sugestão: resources/js/components/page/)
 
 3. Onde devo salvar os composables?
    (sugestão: resources/js/composables/)
+
+4. (Opcional) Você tem algum código Vue/HTML ou screenshot de referência
+   visual para guiar o estilo dos componentes? Cole o código ou informe
+   o caminho da imagem.
 ```
 
-Só prossiga para a **Fase 1** após o usuário responder as três perguntas acima.
-Se o usuário já tiver colado o código na mesma mensagem, ainda assim confirme os
-itens 2 e 3 antes de gerar qualquer arquivo.
-
----
-
-## Objetivo
-
-Esta skill analisa modelos/layouts fornecidos pelo usuário e produz um conjunto coeso de
-componentes Vue reutilizáveis para **páginas de listagem** e **páginas de formulário**,
-eliminando repetição e padronizando a estrutura visual e funcional do projeto.
-
----
-
-## Stack obrigatório
-
-- Vue 3 + Composition API (`<script setup lang="ts">`)
-- TypeScript estrito
-- TailwindCSS (classes utilitárias, sem CSS customizado salvo exceções)
-- Inertia.js (`useForm`, `router`, `usePage`) para navegação e forms
-
-### Componentes de UI — adaptar ao projeto
-
-**Não existe uma biblioteca de UI obrigatória.** Antes de gerar código, identifique o que o
-projeto já usa:
-
-1. **Se o modelo fornecido usa shadcn-vue** → continue usando shadcn-vue
-2. **Se usa outra biblioteca** (PrimeVue, Quasar, Headless UI, etc.) → siga o padrão existente
-3. **Se não usa nenhuma** → gere HTML semântico puro com Tailwind
-
-Quando não houver componentes de UI disponíveis, use esses equivalentes HTML+Tailwind:
-
-| Necessidade | HTML+Tailwind equivalente |
-|---|---|
-| Botão primário | `<button class="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90">` |
-| Botão outline | `<button class="px-4 py-2 border border-input rounded-md text-sm font-medium hover:bg-accent">` |
-| Input | `<input class="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">` |
-| Card | `<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6">` |
-| Badge | `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">` |
+**Regras:**
+- Perguntas 1, 2 e 3 são obrigatórias. Não prossiga sem elas.
+- Pergunta 4 é opcional. Se o usuário já colou código ou screenshot na mesma
+  mensagem, trate como resposta da pergunta 4 automaticamente.
+- Se o usuário responder 2 e 3 mas pular a 1, peça especificamente a base de
+  tema novamente — ela é a fundação de tudo.
+- **NÃO confunda** o código da pergunta 4 (referência visual) com a pasta/documento
+  da pergunta 1 (tema base). São entradas distintas.
 
 ---
 
