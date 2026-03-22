@@ -283,90 +283,264 @@ resources/js/
 
 ---
 
-## Fase 3 — Geração dos Componentes
+## Fase 4 — Geração dos Componentes
 
 ### Regras de geração
 
-1. **Slots sobre props** para conteúdo variável — nunca force o conteúdo dentro do componente
-2. **Props com defaults** — todos os campos opcionais devem ter `default: undefined` ou `false`
-3. **Emits tipados** — declare todos os emits com tipos TypeScript
-4. **Composables separados** — lógica stateful vai em composables, não dentro do componente
-5. **Sem lógica de negócio** — os componentes são estrutura, não regra; a página-pai decide o comportamento
-6. **Adaptar UI ao projeto** — use os componentes de UI que o modelo fornecido já usa; se não houver, use HTML+Tailwind puro (ver tabela no Stack)
-7. **Manter nomes do modelo** — se o modelo usa `header-actions`, mantenha esse nome de slot; se usa `actions`, mantenha `actions`
+1. `<script setup lang="ts">` em todos os arquivos — sem Options API
+2. `defineProps<{}>()` com tipos TypeScript completos — sem objetos de props em runtime
+3. `defineEmits<{}>()` com tipos TypeScript completos
+4. **Slots sobre props** para conteúdo variável — nunca hardcodar conteúdo de negócio
+5. Props opcionais com defaults explícitos (`false`, `undefined`, `[]`, `'sidebar'`)
+6. Nenhuma lógica de negócio nos componentes de layout — a página-pai decide o comportamento
+7. **Todos os textos de interface hardcoded em PT-BR** (ver lista abaixo)
+8. Tokens do tema detectados na Fase 1 aplicados consistentemente
+9. Componentes UI descobertos na Fase 1b reutilizados por papel funcional
+10. **Zero imports de `callcocam/*`** — em nenhum arquivo gerado
+11. Fallback HTML+Tailwind puro para papéis não mapeáveis (ver tabela na seção Mapeamento)
+12. Compatível com Laravel 12/13 + Tailwind v4 (sem `tailwind.config.js`)
 
-### Contrato de slots do `<ListPage>`
+### Textos PT-BR obrigatórios
+
+`Salvar` · `Cancelar` · `Excluir` · `Novo` · `Buscar` · `Limpar filtros` ·
+`Nenhum resultado encontrado` · `Você tem alterações não salvas` ·
+`Sim, excluir` · `Esta ação não pode ser desfeita`
+
+---
+
+### Contratos dos componentes de suporte
+
+#### `PageShell.vue`
+
+Props:
+
+| Prop | Tipo | Default | Descrição |
+|------|------|---------|-----------|
+| `maxWidth` | `'sm'\|'md'\|'lg'\|'xl'\|'2xl'\|'full'` | `'2xl'` | Largura máxima do conteúdo |
+| `padding` | `boolean` | `true` | Aplica padding lateral padrão |
+| `scrollable` | `boolean` | `true` | Permite scroll vertical interno |
+
+Slots: `#default` — conteúdo livre. Emits: nenhum.
+
+#### `PageHeader.vue`
+
+Props:
+
+| Prop | Tipo | Obrigatório | Default | Descrição |
+|------|------|-------------|---------|-----------|
+| `title` | `string` | Sim | — | Título principal |
+| `breadcrumbs` | `{ label: string, href?: string }[]` | Não | `[]` | Trilha de navegação |
+| `total` | `number` | Não | `undefined` | Exibido junto ao título: "Produtos (42)" |
+
+Slots: `#header-actions` — botões posicionados à direita do título. Emits: nenhum.
+
+#### `PageFilters.vue`
+
+Props:
+
+| Prop | Tipo | Default | Descrição |
+|------|------|---------|-----------|
+| `activeCount` | `number` | `0` | Filtros ativos — exibe badge e botão "Limpar filtros" |
+
+Slots: `#default` — conteúdo dos filtros (inputs, selects, etc.).
+
+Emits: `clear` — clique em "Limpar filtros".
+
+> `PageFilters` é estrutural — quem sincroniza com a URL é o composable `usePageFilters`.
+
+#### `PagePagination.vue`
+
+Props:
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|-------------|-----------|
+| `meta` | `LaravelPaginatorMeta` | Sim | Meta do Laravel `paginate()` |
+
+```ts
+interface LaravelPaginatorMeta {
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+  from: number | null
+  to: number | null
+}
+```
+
+Emits: `change` com payload `{ page: number }`. Slots: nenhum — autocontido.
+
+#### `PageEmptyState.vue`
+
+Props:
+
+| Prop | Tipo | Default | Descrição |
+|------|------|---------|-----------|
+| `title` | `string` | `'Nenhum resultado encontrado'` | Título |
+| `description` | `string` | `''` | Texto explicativo |
+| `icon` | `string` | `''` | Nome do ícone lucide-vue-next (opcional) |
+
+Slots: `#action` — CTA (ex: "Criar primeiro item"). Emits: nenhum.
+
+#### `PageBulkActionBar.vue`
+
+Props:
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|-------------|-----------|
+| `count` | `number` | Sim | Quantidade de itens selecionados |
+
+Slots: `#default` — botões de ação em massa.
+
+Emits: `clear` — limpar seleção.
+
+> `ListPage` passa `count` e escuta `@clear`. `PageBulkActionBar` não consome `useSelection` diretamente.
+
+---
+
+### Contrato do `<ListPage>`
 
 ```vue
 <ListPage
   title="Produtos"
-  :breadcrumbs="[{ label: 'Dashboard', href: '/' }, { label: 'Produtos' }]"
+  :breadcrumbs="[{ label: 'Painel', href: '/' }, { label: 'Produtos' }]"
   :total="meta.total"
-  :loading="isLoading"
+  :loading="carregando"
 >
-  <!-- Ações do cabeçalho (criar, importar, exportar) -->
+  <!-- Ações do cabeçalho (Novo, Importar, Exportar) -->
   <template #header-actions>
-    <Button @click="router.visit(route('products.create'))">Novo Produto</Button>
+    <button @click="criar">Novo Produto</button>
   </template>
 
-  <!-- Filtros — passa o componente de filtros customizado da página -->
+  <!-- Filtros — componente de filtros customizado da página -->
   <template #filters>
-    <ProductFilters v-model="filters" />
+    <FiltrosProdutos v-model="filtros" />
   </template>
 
-  <!-- Ações em massa — aparece só com seleção ativa -->
+  <!-- Ações em massa — aparece somente com seleção ativa -->
   <template #bulk-actions="{ selected, clear }">
-    <Button variant="destructive" @click="deleteSelected(selected, clear)">
+    <button @click="excluirSelecionados(selected, clear)">
       Excluir {{ selected.length }} itens
-    </Button>
+    </button>
   </template>
 
   <!-- Corpo da listagem (tabela, grid, kanban — livre) -->
   <template #default>
-    <ProductTable :items="products" v-model:selection="selection" />
+    <TabelaProdutos :itens="produtos" v-model:selecao="selecao" />
   </template>
 
-  <!-- Paginação — opcional, automático se :meta for passado -->
+  <!-- Paginação -->
   <template #pagination>
-    <PagePagination :meta="meta" @change="changePage" />
+    <PagePagination :meta="meta" @change="mudarPagina" />
   </template>
 </ListPage>
 ```
 
-### Contrato de slots do `<FormPage>`
+**Props de `ListPage`:**
+
+| Prop | Tipo | Obrigatório | Default | Descrição |
+|------|------|-------------|---------|-----------|
+| `title` | `string` | Sim | — | Título da página |
+| `breadcrumbs` | `{ label: string, href?: string }[]` | Não | `[]` | Trilha |
+| `total` | `number` | Não | `undefined` | Total de registros |
+| `loading` | `boolean` | Não | `false` | Estado de carregamento |
+
+**Slots de `ListPage`:**
+
+| Slot | Escopo | Descrição |
+|------|--------|-----------|
+| `#header-actions` | — | Botões do cabeçalho |
+| `#filters` | — | Barra de filtros |
+| `#bulk-actions` | `{ selected: any[], clear: () => void }` | Ações em massa |
+| `#default` | — | Corpo da listagem |
+| `#pagination` | — | Componente de paginação |
+| `#empty` | — | Estado vazio customizado |
+
+**Emits de `ListPage`:** `page-change` com `{ page: number }`.
+
+---
+
+### Contrato do `<FormPage>`
 
 ```vue
 <FormPage
-  :title="form.id ? `Editando ${form.name}` : 'Novo Produto'"
-  :breadcrumbs="[{ label: 'Produtos', href: route('products.index') }, { label: form.id ? 'Editar' : 'Novo' }]"
+  :title="form.id ? `Editando ${form.nome}` : 'Novo Produto'"
+  :breadcrumbs="[{ label: 'Produtos', href: route('produtos.index') }, { label: 'Formulário' }]"
   :loading="form.processing"
   :dirty="form.isDirty"
-  @submit="submit"
-  @cancel="router.visit(route('products.index'))"
+  @submit="salvar"
+  @cancel="router.visit(route('produtos.index'))"
 >
-  <!-- Ações extras no header (excluir, duplicar) -->
+  <!-- Ações extras no cabeçalho (Excluir, Duplicar) — opcional -->
   <template #header-actions>
-    <Button variant="destructive" @click="confirmDelete">Excluir</Button>
+    <button @click="confirmarExclusao">Excluir</button>
   </template>
 
-  <!-- Corpo principal do formulário -->
+  <!-- Campos do formulário -->
   <template #default>
-    <FormField label="Nome" :error="form.errors.name">
-      <Input v-model="form.name" />
-    </FormField>
+    <div class="space-y-4">
+      <!-- campos aqui -->
+    </div>
   </template>
 
-  <!-- Sidebar de metadados -->
+  <!-- Sidebar de metadados — opcional, só com layout="sidebar" -->
   <template #sidebar>
-    <Card>
-      <CardContent>
-        <p>Criado em: {{ product.created_at }}</p>
-        <StatusSelect v-model="form.status" />
-      </CardContent>
-    </Card>
+    <div class="rounded-lg border p-4 space-y-3">
+      <p class="text-sm font-medium">Status</p>
+      <select v-model="form.status">
+        <option value="rascunho">Rascunho</option>
+        <option value="ativo">Ativo</option>
+      </select>
+    </div>
   </template>
+
+  <!-- NÃO use #footer a menos que precise substituir completamente o footer padrão -->
+  <!-- O footer padrão já inclui "Salvar" e "Cancelar" automaticamente -->
 </FormPage>
 ```
+
+**Footer nativo (built-in — não é slot):**
+
+```vue
+<!-- sticky bottom — gerado automaticamente pelo FormPage -->
+<!-- SecondaryButton/PrimaryButton = componente descoberto ou HTML+Tailwind puro -->
+<footer class="sticky bottom-0 border-t bg-white px-6 py-3">
+  <div class="flex items-center justify-between">
+    <span v-if="dirty" class="text-sm text-muted-foreground">
+      Você tem alterações não salvas
+    </span>
+    <div class="flex gap-2 ml-auto">
+      <SecondaryButton @click="$emit('cancel')">{{ cancelLabel }}</SecondaryButton>
+      <PrimaryButton :disabled="loading" @click="$emit('submit')">
+        <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+        {{ submitLabel }}
+      </PrimaryButton>
+    </div>
+  </div>
+</footer>
+```
+
+**Props de `FormPage`:**
+
+| Prop | Tipo | Obrigatório | Default | Descrição |
+|------|------|-------------|---------|-----------|
+| `title` | `string` | Sim | — | Título dinâmico |
+| `breadcrumbs` | `{ label: string, href?: string }[]` | Não | `[]` | Trilha |
+| `loading` | `boolean` | Não | `false` | Processando — desabilita "Salvar" |
+| `dirty` | `boolean` | Não | `false` | Exibe "Você tem alterações não salvas" |
+| `layout` | `'single' \| 'sidebar'` | Não | `'sidebar'` | Disposição |
+| `submitLabel` | `string` | Não | `'Salvar'` | Texto do botão de envio |
+| `cancelLabel` | `string` | Não | `'Cancelar'` | Texto do botão cancelar |
+
+**Slots de `FormPage`:**
+
+| Slot | Escopo | Descrição |
+|------|--------|-----------|
+| `#header-actions` | — | Ações extras (Excluir, Duplicar) |
+| `#default` | — | Campos do formulário |
+| `#sidebar` | — | Metadados — só com `layout="sidebar"` |
+| `#footer` | — | Override completo do footer (uso raro) |
+
+**Emits de `FormPage`:** `submit`, `cancel`.
 
 ---
 
