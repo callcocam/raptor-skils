@@ -116,8 +116,8 @@ ls resources/css/app.css resources/css/app.pcss 2>/dev/null
 **APENAS se a resposta da pergunta 1 foi uma PASTA:**
 
 ```bash
-# Ler tokens de tema no CSS global
-cat resources/css/app.css
+# Ler tokens de tema no CSS global — tentar app.css, fallback para app.pcss
+cat resources/css/app.css 2>/dev/null || cat resources/css/app.pcss 2>/dev/null
 ```
 
 Buscar no CSS:
@@ -125,12 +125,14 @@ Buscar no CSS:
 - `:root { }` — CSS custom properties (ex: `--primary: 222 47% 11%`)
 - `@layer base { }` — overrides de base
 
-**Se `components/ui/` existir:** listar os arquivos `.vue` e classificar por papel funcional usando a tabela de mapeamento (seção "Mapeamento de componentes UI").
+**Se nenhum arquivo CSS for encontrado** (`app.css` e `app.pcss` ausentes): acionar o fallback de tokens ausentes (ver abaixo).
+
+**Se `components/ui/` existir:** para cada `.vue` encontrado, ler o arquivo para identificar nome e props aceitas, depois classificar por papel funcional usando a tabela de mapeamento (seção "Mapeamento de componentes UI").
 
 **Se `components/ui/` não existir ou estiver vazio:** registrar "Sem componentes UI encontrados — usar fallback HTML+Tailwind" e prosseguir.
 
-**Se `app.css` não contiver `@theme {}` nem `:root {}`:** perguntar ao usuário:
-> "Não encontrei tokens de tema no `app.css`. Quer colar um documento com os tokens
+**Se o CSS lido não contiver `@theme {}` nem `:root {}`:** perguntar ao usuário:
+> "Não encontrei tokens de tema no CSS. Quer colar um documento com os tokens
 > ou devo usar classes Tailwind utilitárias padrão (ex: `bg-blue-600`, `text-gray-*`)?"
 > - Se colar tokens → processar como documento (abaixo)
 > - Se pedir padrão → usar classes utilitárias Tailwind sem `[]`
@@ -177,9 +179,9 @@ Quando componentes são encontrados em `components/ui/`, mapear para papéis fun
 
 | Papel | Como identificar |
 |-------|-----------------|
-| Botão primário | Nome contendo "Button" ou "Btn" + aceita `variant="default"` ou `variant="primary"` **OU** é o único botão sem variante |
+| Botão primário | Nome contendo "Button" ou "Btn" com `variant="default"` ou `variant="primary"`. Se houver ambiguidade entre múltiplos arquivos de botão, classificar o primeiro alfabeticamente como primário e registrar a ambiguidade em 1d. |
 | Botão secundário | Mesmo componente com `variant="secondary"` ou `variant="outline"` |
-| Input de texto | Nome contendo "Input", aceita `modelValue` |
+| Input de texto | Nome contendo "Input" com prop `modelValue` |
 | Label de campo | Nome contendo "Label" |
 | Erro de campo | Nome contendo "Error" ou "Message" |
 | Dialog/Confirm | Nome contendo "Dialog", "Modal" ou "Alert" |
@@ -189,13 +191,15 @@ Se um papel não for mapeável com confiança → usar HTML+Tailwind puro para a
 
 **Equivalentes HTML+Tailwind (quando não há componente mapeável):**
 
-| Papel | HTML+Tailwind |
-|-------|--------------|
+| Papel | Fallback |
+|-------|---------|
 | Botão primário | `<button class="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50">` |
 | Botão secundário | `<button class="px-4 py-2 border border-input rounded-md text-sm font-medium hover:bg-accent disabled:opacity-50">` |
 | Input | `<input class="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">` |
 | Label | `<label class="text-sm font-medium text-foreground">` |
 | Erro | `<p class="text-sm text-destructive mt-1">` |
+| Dialog/Confirm | `window.confirm('mensagem')` — retorna boolean |
+| Toast | Elemento `<div>` fixo no canto inferior direito, removido após 3s |
 
 ---
 
