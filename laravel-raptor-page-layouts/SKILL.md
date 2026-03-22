@@ -544,53 +544,86 @@ Emits: `clear` — limpar seleção.
 
 ---
 
-## Fase 4 — Composables
+## Fase 5 — Composables
+
+> **Convenção:** nomes de export em inglês (padrão de código interno).
+> Textos de interface nos componentes gerados em PT-BR.
 
 ### `usePageFilters(defaults)`
 
+Sincroniza filtros com a URL (query params) via Inertia router.
+Debounce configurável para busca de texto.
+Reset volta aos defaults e limpa a URL.
+
 ```ts
-// Sincroniza filtros com a URL (query params) via Inertia router
-// Debounce configurável para busca de texto
-// Reset volta aos defaults e limpa a URL
 const { filters, setFilter, resetFilters, activeFilterCount } = usePageFilters({
-  search: '',
-  status: null,
-  category_id: null,
+  busca: '',
+  status: null as string | null,
+  categoria_id: null as string | null,
 })
 ```
 
-### `useSelection(items, key?)`
-
-```ts
-// Controle de seleção de linhas para bulk actions
-// key padrão: 'id'
-const { selected, toggle, toggleAll, clear, isSelected, hasSelection } = useSelection(products)
-```
-
-### `useFormDirty(form)`
-
-```ts
-// Detecta se o form foi modificado (Inertia form.isDirty)
-// Registra beforeunload para avisar o usuário
-// Integra com onBeforeRouteLeave do Vue Router / Inertia
-const { isDirty, confirmLeave } = useFormDirty(form)
-```
-
-### `usePageActions()`
-
-```ts
-// Helpers padronizados para ações comuns
-const { confirm, toast, withLoading } = usePageActions()
-
-// Exemplo de uso:
-await confirm({ title: 'Excluir produto?', description: 'Essa ação não pode ser desfeita.' })
-await withLoading(() => router.delete(route('products.destroy', product.id)))
-toast.success('Produto excluído com sucesso.')
-```
+Exports: `filters` (Ref\<T\>), `setFilter`, `resetFilters`, `activeFilterCount` (ComputedRef\<number\>)
 
 ---
 
-## Fase 5 — Documentação dos Componentes
+### `useSelection(items, key?)`
+
+Controle de seleção de linhas para bulk actions. Key padrão: `'id'`.
+
+```ts
+const { selected, toggle, toggleAll, clear, isSelected, hasSelection } = useSelection(produtos)
+```
+
+Exports: `selected` (Ref\<T[keyof T][]\>), `toggle`, `toggleAll`, `clear`, `isSelected`, `hasSelection` (ComputedRef\<boolean\>)
+
+---
+
+### `useFormDirty(form)`
+
+Detecta se o form foi modificado (Inertia `form.isDirty`).
+Registra `beforeunload` para avisar o usuário se tentar fechar a aba.
+Integra com navegação Inertia para interceptar saída sem salvar.
+
+```ts
+const { isDirty, confirmLeave } = useFormDirty(form)
+```
+
+Exports: `isDirty` (ComputedRef\<boolean\>), `confirmLeave` (() => Promise\<boolean\>)
+
+---
+
+### `usePageActions()`
+
+Helpers padronizados para ações comuns: confirmação, toast, loading state.
+
+**`confirm`:** se componente Dialog/Modal for encontrado em `components/ui/` na Fase 1b → usar esse componente; caso contrário → `window.confirm()` nativo.
+
+**`toast`:** se componente Toast/Sonner for encontrado em `components/ui/` na Fase 1b → usar esse componente; caso contrário → elemento `<div>` fixo no canto inferior direito, removido após 3s.
+
+```ts
+const { confirm, toast, withLoading } = usePageActions()
+
+const confirmado = await confirm({
+  title: 'Excluir produto?',
+  description: 'Esta ação não pode ser desfeita.',
+  confirmLabel: 'Sim, excluir',
+  variant: 'destructive',
+})
+
+if (confirmado) {
+  await withLoading(async () => {
+    await router.delete(route('produtos.destroy', produto.id))
+  })
+  toast.success('Produto excluído com sucesso.')
+}
+```
+
+Exports: `confirm`, `toast` (`{ success, error, warning }`), `withLoading`
+
+---
+
+## Fase 6 — Documentação dos Componentes
 
 Para cada componente gerado, produza um bloco de documentação em markdown com:
 
@@ -633,7 +666,7 @@ Para cada componente gerado, produza um bloco de documentação em markdown com:
 
 ---
 
-## Fase 6 — Checklist final antes de entregar
+## Fase 7 — Checklist final antes de entregar
 
 - [ ] Todos os componentes têm `<script setup lang="ts">`
 - [ ] Props com `defineProps<{...}>()` tipadas
