@@ -87,78 +87,115 @@ Antes de começar, preciso de algumas informações:
 
 ---
 
-## Fase 1 — Análise do Modelo
+## Fase 1 — Ler o Ambiente
 
-### 1a. Coletar informações do projeto (OBRIGATÓRIO — fazer antes de qualquer análise)
+Execute todas as sub-etapas antes de passar para a Fase 2.
 
-Antes de analisar qualquer arquivo, **faça estas perguntas ao usuário** se ainda não foram
-respondidas na conversa:
+### 1a — Detectar estrutura do projeto
 
-1. **Onde está a pasta com o layout base?**
-   - Ex: `resources/js/layouts/`, `resources/js/Pages/`, `resources/js/components/`
-   - Se o usuário ainda não colou o código nem forneceu o caminho, peça explicitamente:
-     *"Qual é o caminho da pasta com o layout de referência? Você pode colar o código aqui
-     ou informar o caminho no projeto."*
+```bash
+# Layouts existentes
+ls resources/js/Layouts/ 2>/dev/null
 
-2. **Onde os componentes gerados devem ser salvos?**
-   - Se não informado, sugira `resources/js/components/page/` e confirme com o usuário
+# Componentes de UI disponíveis para reuso
+ls resources/js/components/ui/ 2>/dev/null
+ls resources/js/Components/ 2>/dev/null
+ls resources/js/components/shared/ 2>/dev/null
 
-3. **Onde os composables devem ser salvos?**
-   - Se não informado, sugira `resources/js/composables/` e confirme com o usuário
+# CSS global com tokens de tema
+ls resources/css/app.css resources/css/app.pcss 2>/dev/null
+```
 
-Só avance para o passo **1b** após ter o layout de referência disponível (colado no chat
-ou lido do filesystem via ferramenta bash).
+**Registrar:**
+- Quais subpastas de componentes existem
+- Quais arquivos CSS globais existem
+- **NÃO assumir** nomes Breeze (PrimaryButton, TextInput, etc.) — registrar apenas o que for encontrado
 
-### 1b. Identificar o tipo de entrada
+### 1b — Ler a base de tema
 
-O usuário pode fornecer **duas fontes diferentes** — trate cada uma adequadamente:
+**APENAS se a resposta da pergunta 1 foi uma PASTA:**
 
-**Entrada: código Vue/HTML colado**
-- Leia o código diretamente
-- Identifique classes CSS, estrutura de tags, diretivas Vue, padrões de slot
-- Extraia nomes de variáveis, props e emits já usados para manter consistência
+```bash
+# Ler tokens de tema no CSS global
+cat resources/css/app.css
+```
 
-**Entrada: print/screenshot de página**
-- Analise visualmente os elementos presentes
-- Identifique regiões: header, filtros, tabela, paginação, sidebar, footer
-- Anote o que é claramente interativo (botões, inputs, selects, checkboxes)
-- Anote o que parece dinâmico (badges de contagem, estados de loading, paginação)
-- Se a imagem for ambígua, pergunte antes de assumir
+Buscar no CSS:
+- `@theme { }` — tokens Tailwind v4 (ex: `--color-primary: oklch(...)`)
+- `:root { }` — CSS custom properties (ex: `--primary: 222 47% 11%`)
+- `@layer base { }` — overrides de base
 
-### 1c. Garimpar padrões presentes
+**Se `components/ui/` existir:** listar os arquivos `.vue` e classificar por papel funcional usando a tabela de mapeamento (seção "Mapeamento de componentes UI").
 
-### Padrões de Lista a garimpar:
-- [ ] Cabeçalho com título, subtítulo e breadcrumb
-- [ ] Área de ações do header (criar, importar, exportar, outros)
-- [ ] Barra de busca / filtros inline
-- [ ] Filtros avançados (drawer, modal ou painel colapsável)
-- [ ] Chips de filtros ativos com botão de limpar
-- [ ] Tabela ou grid de dados
-- [ ] Estado vazio (empty state com CTA)
-- [ ] Estado de carregamento (skeleton)
-- [ ] Seleção de linhas e ações em massa (bulk actions)
-- [ ] Paginação com meta do Laravel
-- [ ] Toggle de visualização (tabela / cards / kanban)
+**Se `components/ui/` não existir ou estiver vazio:** registrar "Sem componentes UI encontrados — usar fallback HTML+Tailwind" e prosseguir.
 
-### Padrões de Formulário a garimpar:
-- [ ] Cabeçalho: título dinâmico (Novo X / Editando X), breadcrumb, status badge
-- [ ] Ações do header (salvar, cancelar, excluir, duplicar)
-- [ ] Layout em colunas (main + sidebar)
-- [ ] Seções colapsáveis / tabs dentro do form
-- [ ] Sidebar de metadados (datas, autor, tags, status)
-- [ ] Footer sticky com ações de salvar/cancelar
-- [ ] Dirty check (aviso de saída sem salvar)
-- [ ] Exibição de erros de validação (Inertia errors)
-- [ ] Estado de loading durante submit
+**Se `app.css` não contiver `@theme {}` nem `:root {}`:** perguntar ao usuário:
+> "Não encontrei tokens de tema no `app.css`. Quer colar um documento com os tokens
+> ou devo usar classes Tailwind utilitárias padrão (ex: `bg-blue-600`, `text-gray-*`)?"
+> - Se colar tokens → processar como documento (abaixo)
+> - Se pedir padrão → usar classes utilitárias Tailwind sem `[]`
 
-### Padrões transversais:
-- [ ] Confirmação de exclusão (dialog)
-- [ ] Toast / notificação de feedback
-- [ ] Guardas de permissão em botões/seções (`can` / `v-if="$page.props.auth.can[...]"`)
-- [ ] Navegação entre registros (anterior/próximo)
+**APENAS se a resposta da pergunta 1 foi um DOCUMENTO:**
 
-**Liste os padrões encontrados antes de gerar código.** Pergunte ao usuário se o diagnóstico
-está correto antes de prosseguir.
+Extrair do documento:
+- Tokens de cor nomeados e seus valores (hex, CSS var ou classe Tailwind)
+- Tipografia: famílias de fonte, escala de tamanhos, pesos
+- Espaçamentos e convenções de padding/gap
+- Convenções visuais: border-radius, shadow, estilo de card, estilo de input
+- Quaisquer regras documentadas de componentes
+
+### 1c — Analisar referência visual (opcional)
+
+**Só executar se o usuário forneceu código ou screenshot na pergunta 4.**
+
+**Se código Vue/HTML:**
+- Ler o código diretamente
+- Identificar classes CSS, diretivas Vue, nomes de componentes, padrões de slot
+- Extrair nomes de variáveis/props/emits já em uso (preservar consistência de nomenclatura)
+- Verificar quais componentes de UI já estão sendo usados no código
+
+**Se screenshot:**
+- Identificar regiões: header, filtros, tabela/grid, paginação, sidebar, footer
+- Anotar elementos interativos: botões, inputs, selects, checkboxes
+- Anotar elementos dinâmicos: badges de contagem, estados de loading, empty state
+- Se regiões forem ambíguas, perguntar antes de assumir
+
+### 1d — Consolidar descobertas
+
+Compilar internamente (não exibir ainda — isso acontece na Fase 2):
+
+- **Tokens identificados:** lista de tokens de cor, CSS vars ou classes Tailwind do tema
+- **Componentes UI disponíveis:** lista de componentes mapeados por papel funcional
+- **Convenções visuais:** estilo de border-radius, padrão de card, estilo de input
+- **Padrões da referência (se fornecida):** padrões de lista/form encontrados
+
+---
+
+## Mapeamento de componentes UI
+
+Quando componentes são encontrados em `components/ui/`, mapear para papéis funcionais:
+
+| Papel | Como identificar |
+|-------|-----------------|
+| Botão primário | Nome contendo "Button" ou "Btn" + aceita `variant="default"` ou `variant="primary"` **OU** é o único botão sem variante |
+| Botão secundário | Mesmo componente com `variant="secondary"` ou `variant="outline"` |
+| Input de texto | Nome contendo "Input", aceita `modelValue` |
+| Label de campo | Nome contendo "Label" |
+| Erro de campo | Nome contendo "Error" ou "Message" |
+| Dialog/Confirm | Nome contendo "Dialog", "Modal" ou "Alert" |
+| Toast/Notificação | Nome contendo "Toast", "Notification" ou "Sonner" |
+
+Se um papel não for mapeável com confiança → usar HTML+Tailwind puro para aquele papel.
+
+**Equivalentes HTML+Tailwind (quando não há componente mapeável):**
+
+| Papel | HTML+Tailwind |
+|-------|--------------|
+| Botão primário | `<button class="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50">` |
+| Botão secundário | `<button class="px-4 py-2 border border-input rounded-md text-sm font-medium hover:bg-accent disabled:opacity-50">` |
+| Input | `<input class="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">` |
+| Label | `<label class="text-sm font-medium text-foreground">` |
+| Erro | `<p class="text-sm text-destructive mt-1">` |
 
 ---
 
