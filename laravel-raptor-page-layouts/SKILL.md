@@ -76,6 +76,8 @@ Antes de começar, preciso de algumas informações:
 
 **Regras:**
 - Perguntas 1, 2 e 3 são obrigatórias. Não prossiga sem elas.
+- Se o usuário já forneceu a base de tema na mensagem de invocação (caminho de pasta
+  ou documento colado), trate como resposta da pergunta 1 automaticamente.
 - Pergunta 4 é opcional. Se o usuário já colou código ou screenshot na mesma
   mensagem, trate como resposta da pergunta 4 automaticamente.
 - Se o usuário responder 2 e 3 mas pular a 1, peça especificamente a base de
