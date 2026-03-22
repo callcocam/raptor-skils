@@ -18,7 +18,10 @@ description: >
   screenshot como referência visual de estilo. Saída: arquivos .vue, composables .ts e
   documentação markdown em docs/. Stack: Laravel 12/13 + Vue 3 + Composition API +
   TypeScript + TailwindCSS v4 + Inertia.js. Todos os textos hardcoded em PT-BR.
-  Zero dependências de pacotes callcocam/*.
+  Zero dependências de pacotes callcocam/*. O layout padrão do Laravel deve ser
+  substituído por completo pela estrutura e tokens do tema indicado (sem manter shell
+  visual padrão anterior). Quando solicitado, também define padrão de backend
+  (rotas + controllers + convenção de páginas Inertia) para acesso organizado.
 ---
 
 # Laravel Raptor — Vue Page Layouts
@@ -84,6 +87,8 @@ Antes de começar, preciso de algumas informações:
   tema novamente — ela é a fundação de tudo.
 - **NÃO confunda** o código da pergunta 4 (referência visual) com a pasta/documento
   da pergunta 1 (tema base). São entradas distintas.
+- Objetivo obrigatório desta skill: **substituir completamente** o layout padrão Laravel
+  (shell visual, wrappers e blocos estruturais de página) pelo tema base indicado.
 
 ---
 
@@ -110,6 +115,25 @@ ls resources/css/app.css resources/css/app.pcss 2>/dev/null
 - Quais subpastas de componentes existem
 - Quais arquivos CSS globais existem
 - **NÃO assumir** nomes Breeze (PrimaryButton, TextInput, etc.) — registrar apenas o que for encontrado
+
+### 1a.1 — Mapear layout padrão Laravel para substituição completa
+
+Antes de gerar arquivos, identificar quais shells/layouts atualmente estruturam as páginas
+para garantir substituição total do padrão anterior.
+
+```bash
+# Layout principal e variantes comuns
+ls resources/js/Layouts 2>/dev/null
+ls resources/js/layouts 2>/dev/null
+
+# Procurar usos dos layouts atuais
+rg "AppLayout|AuthenticatedLayout|GuestLayout|MainLayout|DefaultLayout|Layout" resources/js/Pages resources/js/pages 2>/dev/null
+```
+
+**Registrar:**
+- Quais layouts base estão em uso real nas páginas
+- Quais wrappers/containers devem ser removidos, substituídos ou reencaixados
+- Se houver conflito entre layout antigo e tema novo, o tema novo sempre vence
 
 ### 1b — Ler a base de tema
 
@@ -232,12 +256,18 @@ Após concluir a Fase 1, apresentar ao usuário o diagnóstico abaixo e **aguard
   PageEmptyState, PageBulkActionBar
 - 4 composables: usePageFilters, useSelection, useFormDirty, usePageActions
 - Documentação markdown em `<caminho-componentes>/docs/`
+- Plano de substituição do layout padrão atual pelas novas bases de página
 
 ### Como os Tokens Serão Aplicados
 - Botão primário → [componente ou HTML+Tailwind] com classes `bg-primary text-primary-foreground`
 - Input → [componente ou HTML+Tailwind]
 - Card/container → `rounded-lg border bg-card`
 - Footer → `bg-white border-t` (ou equivalente com tokens do tema)
+
+### Política de Substituição de Layout
+- O shell visual padrão anterior do Laravel **não será preservado**
+- O tema informado será a fonte única de estrutura visual e tokens
+- Qualquer bloco legado incompatível será removido ou reescrito
 
 O diagnóstico está correto? Posso prosseguir com a geração?
 ```
@@ -280,6 +310,120 @@ resources/js/
 - Botões e inputs: usar componentes mapeados na Fase 1 quando disponíveis;
   caso contrário, HTML+Tailwind puro com os tokens do tema.
 - **Zero imports de `callcocam/*`** em qualquer arquivo gerado.
+- Substituir completamente o layout padrão Laravel usado atualmente nas páginas alvo;
+  não manter wrappers visuais antigos por compatibilidade estética.
+
+### 3.1 — Instrução de backend para acesso padronizado (quando solicitado)
+
+Quando o usuário pedir para "criar páginas no backend" ou "organizar acesso", aplicar
+este padrão junto da geração dos layouts/composables.
+
+**Objetivo:** garantir acesso previsível e organizado às páginas Inertia que usam os
+layouts gerados.
+
+**Estrutura recomendada (Laravel 12/13):**
+
+```text
+app/Http/Controllers/Admin/<Recurso>Controller.php
+routes/web.php
+resources/js/Pages/Admin/<Recurso>/Index.vue
+resources/js/Pages/Admin/<Recurso>/Create.vue
+resources/js/Pages/Admin/<Recurso>/Edit.vue
+```
+
+**Convenções obrigatórias:**
+- Agrupar rotas por domínio com prefixo e name prefix:
+  `Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified'])->group(...)`
+- Seguir naming REST para páginas de CRUD:
+  `admin.<recurso>.index`, `admin.<recurso>.create`, `admin.<recurso>.store`,
+  `admin.<recurso>.edit`, `admin.<recurso>.update`, `admin.<recurso>.destroy`
+- Controller retorna Inertia com caminhos padronizados:
+  `Inertia::render('Admin/<Recurso>/Index', ...)`
+- Página `Index` usa `ListPage`; páginas `Create/Edit` usam `FormPage`
+- Não misturar convenções antigas de pasta/namespace fora do padrão `Admin/<Recurso>`
+
+**Template de rotas (base):**
+
+```php
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['auth', 'verified'])
+    ->group(function () {
+        Route::resource('produtos', ProdutoController::class)
+            ->except(['show']);
+    });
+```
+
+**Template de controller (base):**
+
+```php
+public function index(Request $request): Response
+{
+    return Inertia::render('Admin/Produtos/Index', [
+        // dados paginados + filtros
+    ]);
+}
+
+public function create(): Response
+{
+    return Inertia::render('Admin/Produtos/Create');
+}
+
+public function edit(Produto $produto): Response
+{
+    return Inertia::render('Admin/Produtos/Edit', [
+        'produto' => $produto,
+    ]);
+}
+```
+
+### 3.2 — Instrução de autorização backend (Policy + authorize)
+
+Quando o usuário pedir padronização completa de backend, aplicar também autorização
+por Policy para cada ação de CRUD.
+
+**Objetivo:** garantir acesso seguro e previsível, sem regras soltas em controller.
+
+**Padrão obrigatório:**
+- Criar/usar `app/Policies/<Recurso>Policy.php`
+- Registrar Policy no projeto conforme convenção da versão Laravel em uso
+- Em controllers, usar `authorizeResource(<Model>::class, '<parametro>')` no construtor
+  ou chamadas explícitas `$this->authorize('ability', $model)` por ação
+- Nunca hardcodar regra de permissão em Vue; frontend apenas reage ao que backend autoriza
+
+**Abilities mínimas por recurso:**
+- `viewAny` para index
+- `view` para detalhe/edição quando aplicável
+- `create` para create/store
+- `update` para edit/update
+- `delete` para destroy
+
+**Exemplo de controller com authorizeResource:**
+
+```php
+public function __construct()
+{
+  $this->authorizeResource(Produto::class, 'produto');
+}
+```
+
+**Exemplo de proteção adicional por ação (quando necessário):**
+
+```php
+public function index(Request $request): Response
+{
+  $this->authorize('viewAny', Produto::class);
+
+  return Inertia::render('Admin/Produtos/Index', [
+    // dados paginados + filtros
+  ]);
+}
+```
+
+**Integração com frontend Inertia (recomendado):**
+- Compartilhar abilities permitidas no payload da página para controlar visibilidade de
+  botões (`Novo`, `Editar`, `Excluir`) sem substituir a validação backend.
+- Se não autorizado: backend responde 403 e frontend apenas exibe estado de erro padrão.
 
 ---
 
@@ -701,6 +845,8 @@ Formato de cada arquivo:
 - [ ] Bulk actions só aparecem com seleção ativa
 - [ ] `usePageActions.confirm` usa Dialog descoberto ou `window.confirm` como fallback
 - [ ] `usePageActions.toast` usa Toast descoberto ou implementação inline como fallback
+- [ ] Layout padrão Laravel anterior removido/substituído nas páginas alvo
+- [ ] Páginas alvo renderizando com o novo shell baseado no tema (sem mistura visual legado)
 
 ### Tema e visual
 - [ ] Tokens do tema aplicados consistentemente (CSS vars `@theme {}` ou `:root {}`)
@@ -713,6 +859,11 @@ Formato de cada arquivo:
 - [ ] Compatível com Tailwind v4 (sem `tailwind.config.js`)
 - [ ] Componentes UI mapeados por papel funcional — sem assumir nomes fixos
 - [ ] Fallback HTML+Tailwind para papéis não mapeáveis
+- [ ] Quando solicitado, rotas e controllers backend criados em padrão único
+- [ ] Nomes de rotas e caminhos Inertia padronizados (`admin.<recurso>.*` + `Admin/<Recurso>/*`)
+- [ ] Quando solicitado, Policy do recurso implementada e registrada
+- [ ] Controller protegido com `authorizeResource` ou `authorize` por ação
+- [ ] Ações críticas (create/update/delete) sempre validadas no backend
 
 ### Textos e idioma
 - [ ] Todos os textos de interface hardcoded em PT-BR
